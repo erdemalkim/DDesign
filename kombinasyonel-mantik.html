@@ -1,0 +1,3852 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kombinasyonel mantık — Karnaugh, Quine–McCluskey ve devreler</title>
+
+<!--
+  SLAYT EKLEME
+  ------------
+  Karnaugh alıştırması:
+    <div class="kmap" data-vars="A,B,C,D" data-minterms="0,2,5,7" data-dontcares="8,10"></div>
+      data-vars       2, 3 ya da 4 değişken, en anlamlıdan başlayarak
+      data-minterms   F = 1 olan mintermler
+      data-dontcares  isteğe bağlı; önemsiz mintermler (öğrenci X ile işaretler)
+      data-indices    "false" hücrelerdeki küçük minterm numaralarını gizler
+      data-solution   "false" "Çözümü göster" bağlantısını gizler
+
+  Rastgele Karnaugh alıştırması:   <div class="kmap-random" data-random="3,4"></div>
+  Rastgele Quine–McCluskey:        <div class="qm-random" data-random="3,4" data-max-terms="10"></div>
+  Adım adım Quine–McCluskey gösterimi (öğrenci girişi yok):
+    <div class="qm" data-vars="A,B,C,D" data-minterms="..." data-dontcares="..."></div>
+
+  Konu slaytı: <div class="konu"> içinde <ol class="adim"> (her <li class="fragment"> bir adım)
+  ve <div class="gorsel">. Görseller:
+    <svg class="devre" data-devre="ha"></svg>      devre çizimi (CIRCUITS içinde tanımlı)
+    <table class="dt" data-sim="ha"></table>       doğruluk tablosu (SIMS tanımından üretilir)
+    <div class="sim" data-sim="ha"></div>          girişleri tıklanabilen deneme paneli
+
+  Arayüz metinleri betiğin başındaki TEXT nesnesindedir.
+-->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Source+Sans+3:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #fafbfc;
+    --ink: #1b2333;
+    --muted: #5b6577;
+    --rule: #d9dee6;
+    --panel: #ffffff;
+    --accent: #1f6fb2;
+    --accent-ink: #ffffff;
+    --ok: #237a4b;
+    --ok-bg: #e6f4ec;
+    --err: #b3352f;
+    --err-bg: #fbeceb;
+    --sel: #dceaf8;
+    /* group loop colours */
+    --g0: #1f6fb2;
+    --g1: #c2611f;
+    --g2: #2b8a57;
+    --g3: #7a4fb0;
+    --g4: #b8344a;
+    --g5: #13808a;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141922;
+      --ink: #e7ebf2;
+      --muted: #9aa5b6;
+      --rule: #2c3442;
+      --panel: #0f131a;
+      --accent: #6aa8e0;
+      --accent-ink: #0b1220;
+      --ok: #6fcf97;
+      --ok-bg: #15291f;
+      --err: #f08a80;
+      --err-bg: #2d1717;
+      --sel: #1d3550;
+      --g0: #6aa8e0;
+      --g1: #f0a062;
+      --g2: #6fcf97;
+      --g3: #b99ae8;
+      --g4: #f07f95;
+      --g5: #4fc4cc;
+      color-scheme: dark;
+    }
+  }
+
+  html, body { height: 100%; margin: 0; background: var(--bg); }
+  html body.reveal-viewport { background: var(--bg); }
+
+  .reveal {
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    font-size: clamp(13px, min(1.45vw, 2.6vh), 24px);
+  }
+  .reveal .slides { text-align: left; }
+  .reveal .slides > section { box-sizing: border-box; height: 100%; padding: 4vh 3.5vw 7vh; overflow-y: auto; }
+  .reveal .slide-inner { height: 100%; display: flex; flex-direction: column; }
+
+  .reveal h1, .reveal h2 {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    margin: 0;
+  }
+  .reveal h2 { font-size: 1.75em; }
+  .reveal .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1em;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.35em;
+    margin-bottom: 0.7em;
+  }
+  .reveal .head .ctx { color: var(--muted); font-size: 0.8em; white-space: nowrap; }
+
+  /* ---------- Cover ---------- */
+  .cover .slide-inner { justify-content: center; }
+  .cover .course { color: var(--muted); margin-bottom: 0.6em; }
+  .cover h1 { font-size: 3.4em; margin-bottom: 0.6em; }
+  .cover ol { margin: 0 0 1em; padding-left: 1.3em; max-width: 58ch; line-height: 1.55; }
+  .cover ol li { margin-bottom: 0.4em; }
+  .cover .keys { color: var(--muted); font-size: 0.85em; }
+  .reveal kbd {
+    font-family: "Source Code Pro", Consolas, monospace;
+    font-size: 0.8em;
+    border: 1px solid var(--rule);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0 0.35em;
+  }
+
+  /* ---------- Exercise layout ---------- */
+  .km {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: auto minmax(16em, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 1em 2.4em;
+  }
+  .km-left { display: flex; flex-direction: column; gap: 0.8em; min-height: 0; }
+  .km-func { font-size: 1.25em; overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+  .km-func .katex { font-size: 1.05em; }
+
+  /* the map */
+  .km-map {
+    --cell: clamp(1.9em, min(10vh, 7vw), 4.4em);
+    display: grid;
+    gap: 0;
+    align-self: start;
+    font-family: "Source Code Pro", Consolas, monospace;
+  }
+  .km-corner {
+    position: relative;
+    background: linear-gradient(to top right, transparent calc(50% - 0.5px), var(--rule) 50%, transparent calc(50% + 0.5px));
+  }
+  .km-corner .rv, .km-corner .cv { position: absolute; font-family: "Source Serif 4", Georgia, serif; font-style: italic; font-size: 0.85em; }
+  .km-corner .rv { left: 0.25em; bottom: 0.15em; }
+  .km-corner .cv { right: 0.25em; top: 0.1em; }
+  .km-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.8em;
+  }
+  .km-hdr.col { height: calc(var(--cell) * 0.75); }
+  .km-hdr.row { width: calc(var(--cell) * 0.9); }
+
+  .km-cell {
+    position: relative;
+    width: var(--cell);
+    height: var(--cell);
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--rule);
+    margin-left: -1px;
+    margin-top: -1px;
+    background: var(--panel);
+    color: var(--ink);
+    font: 500 1.35em "Source Code Pro", Consolas, monospace;
+    cursor: pointer;
+  }
+  .km-cell .idx {
+    position: absolute;
+    left: 0.3em;
+    top: 0.2em;
+    font-size: 0.42em;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .km-cell .val { position: relative; z-index: 2; }
+  .km-cell.dc .val { color: var(--muted); }
+  .km-cell:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 5; }
+  .km-cell.sel { background: var(--sel); }
+  .km-cell.wrong { box-shadow: inset 0 0 0 3px var(--err); z-index: 3; }
+  .km-cell.miss .val { color: var(--err); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 3px; }
+  .km.locked .km-cell { cursor: default; }
+  .km.grouping .km-cell { cursor: crosshair; }
+
+  /* group loops: one ring per group per cell, open where the group continues */
+  .ring {
+    position: absolute;
+    pointer-events: none;
+    border: 0 solid var(--gc);
+    z-index: 1;
+  }
+
+  /* right-hand panel */
+  .km-panel { display: flex; flex-direction: column; gap: 0.8em; min-height: 0; overflow-y: auto; }
+  .steps { display: flex; gap: 1.2em; margin: 0; padding: 0; list-style: none; font-size: 0.85em; }
+  .steps li { color: var(--muted); display: flex; align-items: center; gap: 0.4em; }
+  .steps li .n {
+    width: 1.6em; height: 1.6em; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--rule); font-weight: 600; font-size: 0.85em;
+  }
+  .steps li.now { color: var(--ink); font-weight: 600; }
+  .steps li.now .n { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .steps li.done .n { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+
+  .km-help { margin: 0; line-height: 1.5; max-width: 46ch; }
+  .km-bar { display: flex; flex-wrap: wrap; gap: 0.5em; }
+  .reveal button.btn {
+    font: 600 0.8em "Source Sans 3", system-ui, sans-serif;
+    border-radius: 6px;
+    padding: 0.45em 1.1em;
+    cursor: pointer;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+  }
+  .reveal button.btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .reveal button.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .reveal button.btn:focus-visible, .reveal button.link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .reveal button.link {
+    font: 0.75em "Source Sans 3", system-ui, sans-serif;
+    background: none; border: 0; padding: 0;
+    color: var(--muted); text-decoration: underline; cursor: pointer;
+  }
+  .km-links { display: flex; gap: 1.2em; }
+
+  .groups { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35em; }
+  .groups li {
+    display: flex; align-items: center; gap: 0.6em;
+    border-left: 4px solid var(--gc);
+    padding: 0.15em 0 0.15em 0.6em;
+    font-size: 0.9em;
+  }
+  .groups li .t { flex: none; }
+  .groups li .cells { flex: 1; }
+  .groups li .cells { color: var(--muted); font: 0.75em "Source Code Pro", Consolas, monospace; }
+  .groups li button {
+    background: none; border: 0; cursor: pointer; color: var(--muted);
+    font: 600 1em "Source Sans 3", system-ui, sans-serif; padding: 0 0.3em;
+  }
+  .groups li button:hover { color: var(--err); }
+  .groups-empty { color: var(--muted); font-size: 0.85em; margin: 0; }
+
+  .msg { margin: 0; padding: 0.55em 0.8em; border-radius: 6px; line-height: 1.45; font-size: 0.9em; max-width: 46ch; }
+  .msg:empty { display: none; }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .msg.ok { background: var(--ok-bg); color: var(--ok); }
+  .msg.info { background: var(--sel); color: var(--ink); }
+
+  /* the final expression, printed across the bottom of the slide */
+  .km-result {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule);
+    padding-top: 0.6em;
+    display: flex;
+    align-items: baseline;
+    gap: 1em;
+    min-height: 2.6em;
+  }
+  .km-result .lbl { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
+  .km-result .expr { font-size: 1.6em; color: var(--muted); }
+  .km-result.solved .expr { color: var(--ok); }
+  .km-result:not(.solved) .expr { font-size: 1em; }
+  .km-result.solved .expr { animation: pop 0.45s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(0.3em); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Quine–McCluskey walkthrough ---------- */
+  .qm { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.7em; }
+  .qm-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em 1.4em; }
+  .qm-say { margin: 0; line-height: 1.5; max-width: 70ch; min-height: 3em; }
+  .qm-say b { font-weight: 600; }
+  .qm-stage {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.6em;
+    padding-bottom: 0.4em;
+  }
+  .qm-col { flex: none; }
+  .qm-col h3, .qm-chart h3 {
+    font: 600 0.8em "Source Sans 3", system-ui, sans-serif;
+    color: var(--muted);
+    margin: 0 0 0.3em;
+  }
+  .qm table { border-collapse: collapse; font-size: 0.72em; }
+  .qm th { font: 600 0.9em "Source Sans 3", system-ui, sans-serif; color: var(--muted); text-align: left; padding: 0.2em 0.6em; border-bottom: 1px solid var(--rule); }
+  .qm td { padding: 0.18em 0.6em; font-family: "Source Code Pro", Consolas, monospace; white-space: nowrap; }
+  .qm tr.gstart td { border-top: 1px solid var(--rule); }
+  .qm td.ones { color: var(--muted); }
+  .qm td.mark { font-family: "Source Sans 3", system-ui, sans-serif; font-weight: 600; min-width: 1.6em; }
+  .qm td.mark.used { color: var(--ok); }
+  .qm td.mark.prime { color: var(--accent); }
+  .qm tr.dconly td { color: var(--muted); }
+  .qm .dcm { color: var(--muted); font-style: italic; }
+  .qm-chart td.x { text-align: center; color: var(--ink); }
+  .qm-chart td.x.ess { color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 2px var(--accent); border-radius: 50%; }
+  .qm-chart th.mt { text-align: center; }
+  .qm-chart tr.essential td:first-child, .qm-chart tr.essential td.term { color: var(--accent); font-weight: 600; }
+  .qm-chart tr.chosen { background: var(--ok-bg); }
+  .qm-chart td.term { font-family: inherit; }
+  .qm [data-step].later { visibility: hidden; }
+  .qm-chart.later, .qm-col.later { display: none; }
+
+  /* practice mode */
+  .qm-col.active h3 { color: var(--accent); }
+  .qm-col.active table { box-shadow: 0 0 0 2px var(--accent); border-radius: 4px; }
+  .qm-col.building table { outline: 1px dashed var(--rule); outline-offset: 2px; }
+  .qm-col.building .empty td { color: var(--muted); font-family: "Source Sans 3", system-ui, sans-serif; white-space: normal; max-width: 12em; }
+  .qm tr.pickable { cursor: pointer; }
+  .qm tr.pickable:hover td { background: var(--sel); }
+  .qm tr.picked td { background: var(--accent); color: var(--accent-ink); }
+  .qm tr.picked .dcm { color: inherit; }
+  .qm tr.missing td { color: var(--err); font-weight: 600; }
+  .qm tr:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+  .qm-found { font-size: 0.72em; color: var(--muted); margin: 0.3em 0 0; }
+  .qm .msg { max-width: 70ch; }
+
+  .reveal .controls, .reveal .progress { color: var(--accent); }
+  .reveal .slide-number { background: transparent; color: var(--muted); font-family: "Source Sans 3", system-ui, sans-serif; }
+
+  /* ---------- Konu slaytları ---------- */
+  .cover .icindekiler { columns: 2; column-gap: 2.5em; margin: 0.4em 0 1em; padding-left: 1.4em; line-height: 1.5; font-size: 0.92em; max-width: 52em; }
+  .cover p { max-width: 62ch; line-height: 1.5; margin: 0 0 0.6em; }
+  .konu {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 0 2.2em;
+  }
+  .adimlar { min-height: 0; overflow-y: auto; font-size: 0.9em; line-height: 1.45; }
+  .adimlar .soru { margin: 0 0 0.6em; font-weight: 600; max-width: 60ch; }
+  .adim { margin: 0; padding-left: 1.5em; max-width: 60ch; }
+  .adim li { margin-bottom: 0.5em; padding-left: 0.2em; }
+  .adim li::marker { color: var(--muted); font-weight: 600; }
+  .adim li.sonuc { color: var(--ok); }
+  .adim li.sonuc::marker { color: var(--ok); }
+  .gorsel { display: flex; flex-direction: column; gap: 0.8em; min-height: 0; overflow: auto; }
+  .yan { display: flex; gap: 1.2em; align-items: flex-start; flex-wrap: wrap; }
+  .not { font-size: 0.8em; color: var(--muted); margin: 0; max-width: 52ch; line-height: 1.45; }
+
+  svg.devre { width: 100%; height: auto; max-height: 40vh; }
+  svg.devre.kucuk { max-height: 32vh; max-width: 26em; }
+  .devre .w { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .devre .gate { fill: var(--panel); stroke: var(--ink); stroke-width: 1.6; }
+  .devre .dot { fill: var(--ink); }
+  .devre .lb { fill: var(--ink); font: 13px "Source Code Pro", Consolas, monospace; }
+  .devre .lb.small { font-size: 11px; fill: var(--muted); }
+  .devre .lb.tiny { font-size: 10px; fill: var(--muted); }
+
+  .gorunum { display: flex; flex-direction: column; gap: 0.4em; min-width: 0; }
+  .g-bar { display: flex; flex-wrap: wrap; gap: 0.4em 0.8em; align-items: center; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--panel); }
+  .reveal .seg button {
+    font: 600 0.68em "Source Sans 3", system-ui, sans-serif;
+    padding: 0.4em 0.8em; background: transparent; color: var(--muted);
+    border: 0; border-right: 1px solid var(--rule); cursor: pointer;
+  }
+  .reveal .seg button:last-child { border-right: 0; }
+  .reveal .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .reveal .seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+  .seg.chips button { font-family: "Source Code Pro", Consolas, monospace; }
+  .g-cap { margin: 0; font-size: 0.75em; color: var(--muted); line-height: 1.5; max-width: 62ch; }
+  .g-cap .g-f { color: var(--ink); font-size: 1.1em; }
+
+  .haritalar { display: flex; flex-direction: column; gap: 0.7em; min-height: 0; }
+  .haritalar > .seg { align-self: flex-start; }
+  .h-grid { display: flex; flex-wrap: wrap; gap: 1em 1.8em; align-items: flex-start; }
+  .h-card { display: flex; flex-direction: column; gap: 0.35em; }
+  .h-t { font-size: 0.78em; font-weight: 600; color: var(--muted); }
+  .h-e { font-size: 0.85em; }
+  .km-map.mini { --cell: clamp(1.5em, min(5.6vh, 3.4vw), 2.6em); font-size: 0.8em; }
+  .km-map.mini .km-cell { font-size: 1.05em; }
+  .km-cell.static { cursor: default; display: flex; align-items: center; justify-content: center; }
+  .km-map.mini .km-cell .idx { font-size: 0.36em; left: 0.25em; top: 0.15em; }
+  .km-map.mini .km-corner .rv, .km-map.mini .km-corner .cv { font-size: 0.75em; }
+  .gorunum svg.devre { max-height: 34vh; }
+  .gorunum svg.devre.kucuk { max-height: 28vh; }
+  .km-cell .val.faint { opacity: 0.28; }
+
+  /* adım adım alıştırmalar */
+  .wz { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.5em; }
+  .wz-top { display: flex; align-items: center; gap: 0.5em 1.2em; flex-wrap: wrap; }
+  .wz-desc { display: flex; align-items: baseline; gap: 0.4em 1em; flex-wrap: wrap; }
+  .wz-desc p { margin: 0; font-size: 0.82em; color: var(--muted); max-width: 70ch; }
+  .wz .steps li.git { cursor: pointer; }
+  .wz .steps li:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .wz-help { max-width: 80ch; font-size: 0.88em; }
+  .wz-body { flex: 1; min-height: 0; overflow: auto; display: flex; gap: 1.2em; flex-wrap: wrap; align-items: flex-start; }
+  .wz-body > .km { flex: 1 1 100%; min-height: 0; }
+  .wz-col { display: flex; flex-direction: column; gap: 0.5em; min-width: 0; flex: 1 1 100%; }
+  table.dt.wz-tt { font-size: 0.85em; }
+  .wz .mx-row { flex: 1 1 100%; flex-wrap: nowrap; }
+  .wz svg.mx-svg { flex: 1 1 16em; min-width: 14em; max-width: 22em; }
+  table.wz-tt td.tik { cursor: pointer; min-width: 1.6em; border: 1px solid var(--rule); }
+  table.wz-tt td.tik:hover { background: var(--sel); }
+  table.wz-tt td.tik:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  table.wz-tt td.mm { color: var(--muted); }
+  table.wz-tt tr.bad td { background: var(--err-bg); }
+  .mx-t td.m.tik { cursor: pointer; }
+  .mx-t td.m.tik:hover span { background: var(--sel); }
+  .mx-t td.m.bad span { box-shadow: 0 0 0 2px var(--err); }
+  .wz-opts { display: flex; flex-direction: column; gap: 0.6em; max-width: 40em; }
+  .reveal button.opt {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.3em;
+    text-align: left; padding: 0.6em 0.9em; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--panel); color: var(--ink); font: 0.85em "Source Sans 3", system-ui, sans-serif; cursor: pointer;
+  }
+  .reveal button.opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+  .reveal button.opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .opt-t { font-weight: 600; }
+  .wz-chips { max-width: 40em; }
+  svg.wz-svg { max-height: 36vh; max-width: 30em; }
+
+  /* çoklayıcıyla tasarım */
+  .mx-konu { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+  .mx { display: flex; flex-direction: column; gap: 0.55em; min-width: 0; }
+  .mx-top { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; }
+  .mx .km-func { font-size: 1.05em; }
+  .mx-sel { display: flex; align-items: center; gap: 0.5em 0.8em; flex-wrap: wrap; }
+  .mx-lbl { font-size: 0.75em; font-weight: 600; color: var(--muted); }
+  .mx-row { display: flex; gap: 1em; align-items: flex-start; flex-wrap: wrap; }
+  .mx-left { display: flex; flex-direction: column; gap: 0.5em; min-width: 0; }
+  svg.mx-svg { width: auto; flex: 1 1 13em; min-width: 11em; max-width: 19em; max-height: 36vh; }
+  table.mx-t { border-collapse: collapse; font-size: 0.72em; }
+  .mx-t th { font: 600 0.9em "Source Sans 3", system-ui, sans-serif; color: var(--muted); padding: 0.2em 0.5em; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  .mx-t td { padding: 0.18em 0.5em; text-align: center; font-family: "Source Code Pro", Consolas, monospace; white-space: nowrap; }
+  .mx-t td.in { font-weight: 600; }
+  .mx-t td.code { color: var(--muted); }
+  .mx-t td.m span { display: inline-flex; align-items: center; justify-content: center; min-width: 1.7em; height: 1.7em; border-radius: 50%; border: 2px solid transparent; }
+  .mx-t td.m.on span { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .mx-t td.m.off span { color: var(--muted); opacity: 0.6; }
+  .mx-t td.m.dc span { border: 2px dashed var(--muted); color: var(--muted); }
+  .mx-t td.ex { text-align: left; border-left: 1px solid var(--rule); min-width: 4em; }
+  .mx-t tr.now td { background: var(--sel); }
+  .mx-t td.m.cur span { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .mx-t tr.ok td.ex { background: var(--ok-bg); }
+  .mx-t tr.bad td.ex { background: var(--err-bg); }
+  .mx-t select { font: 0.95em "Source Code Pro", Consolas, monospace; padding: 0.1em 0.3em; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); color: var(--ink); }
+  .mx-t.cmp tr { cursor: pointer; }
+  .mx-t.cmp tr:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+  .mx-t.cmp td { font-family: inherit; }
+  .mx-t td.cost { font: 0.92em "Source Sans 3", system-ui, sans-serif; color: var(--muted); text-align: left; }
+  .mx-t td.cost.best { color: var(--ok); font-weight: 600; }
+  .mx-cost { margin: 0; font-size: 0.75em; color: var(--muted); }
+  .mx-try { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; font-size: 0.78em; }
+  .mx-bit { display: inline-flex; align-items: center; gap: 0.25em; font-weight: 600; }
+  .mx-out { color: var(--muted); }
+  .mx-cmp { display: flex; flex-direction: column; gap: 0.3em; }
+
+  table.dt { border-collapse: collapse; font: 0.68em "Source Code Pro", Consolas, monospace; }
+  table.dt th { font-weight: 600; padding: 0.15em 0.55em; border-bottom: 1px solid var(--rule); color: var(--muted); }
+  table.dt td { padding: 0.1em 0.55em; text-align: center; }
+  table.dt .o { border-left: 1px solid var(--rule); color: var(--accent); }
+  table.dt td.one { font-weight: 600; }
+  table.dt td.x { color: var(--muted); }
+  table.dt tr.now td { background: var(--sel); }
+  table.dt.elle th { font-family: "Source Sans 3", system-ui, sans-serif; }
+
+  table.hesap { border-collapse: collapse; margin: 0.45em 0 0.2em; font-size: 0.88em; }
+  .hesap th { text-align: left; font-weight: 400; color: var(--muted); padding: 0.08em 0.9em 0.08em 0; white-space: nowrap; }
+  .hesap td { font-family: "Source Code Pro", Consolas, monospace; padding: 0.08em 0.5em; text-align: center; }
+  .hesap tr.vurgu td { color: var(--accent); font-weight: 600; }
+  .hesap tr.ust td { border-top: 1px solid var(--ink); }
+  .hesap.carpim td { min-width: 2.8em; }
+
+  .sim {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.6em 0.8em;
+    background: var(--panel);
+    font-size: 0.8em;
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .sim-t { font-weight: 600; color: var(--muted); font-size: 0.85em; margin-bottom: 0.45em; }
+  .sim-grid { display: grid; grid-template-columns: auto auto auto; gap: 0.35em 0.7em; align-items: center; }
+  .sim-l { font-weight: 600; white-space: nowrap; }
+  .sim-l.out { color: var(--accent); }
+  .sim-sep { grid-column: 1 / -1; border-top: 1px solid var(--rule); margin: 0.1em 0; }
+  .sim-bits { display: flex; gap: 0.2em; flex-wrap: wrap; }
+  .bit {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.8em; height: 1.8em;
+    font: 600 0.95em "Source Code Pro", Consolas, monospace;
+    border: 1px solid var(--rule); border-radius: 4px;
+    background: var(--bg); color: var(--ink);
+  }
+  .reveal button.bit { cursor: pointer; padding: 0; }
+  .reveal button.bit[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .reveal button.bit:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .bit.o.one { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .bit.o.dc { color: var(--muted); }
+  .sim-d { color: var(--muted); font: 0.9em "Source Code Pro", Consolas, monospace; white-space: nowrap; }
+  .sim-n { margin: 0.5em 0 0; color: var(--muted); font-size: 0.9em; max-width: 40ch; line-height: 1.4; }
+
+  /* phones and narrow windows held upright: one column, the page scrolls */
+  @media (max-width: 800px) and (orientation: portrait) {
+    .km { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .km-map { --cell: clamp(1.9em, 15vw, 3.6em); }
+    .km-panel { overflow: visible; }
+    .konu, .mx-konu { grid-template-columns: 1fr; gap: 1em; }
+    .wz .mx-row { flex-wrap: wrap; }
+    .adimlar, .gorsel { overflow: visible; }
+    .cover .icindekiler { columns: 1; }
+    .cover h1 { font-size: 2.4em; }
+    .reveal .head { flex-direction: column; gap: 0.15em; }
+  }
+  /* short screens (phones on their side, small laptops zoomed in) */
+  @media (max-height: 520px) {
+    .reveal .slides > section { padding: 2vh 3vw 2vh; }
+    .reveal h2 { font-size: 1.3em; }
+    .reveal .head { margin-bottom: 0.4em; }
+    .km { gap: 0.5em 1.6em; }
+    .km-panel { gap: 0.5em; }
+    .km-help { font-size: 0.85em; }
+    .km-result { padding-top: 0.3em; min-height: 0; }
+    .km-result .expr { font-size: 1.3em; }
+    .cover h1 { font-size: 2.2em; margin-bottom: 0.3em; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal .slides section { transition: none !important; }
+    .km-result.solved .expr { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ================= 1. KARNAUGH ALIŞTIRMASI (rastgele) ================= -->
+<section>
+  <div class="head"><h2>Karnaugh haritası alıştırması</h2><span class="ctx">Yeni soru için sayfayı yenileyin ya da Yeni soru'ya basın</span></div>
+  <div class="kmap-random" data-random="3,4"></div>
+</section>
+
+<!-- ================= 2. QUINE–McCLUSKEY ALIŞTIRMASI (rastgele) ================= -->
+<section>
+  <div class="head"><h2>Quine–McCluskey alıştırması</h2><span class="ctx">Yeni soru için sayfayı yenileyin ya da Yeni soru'ya basın</span></div>
+  <div class="qm-random" data-random="3,4" data-max-terms="10"></div>
+</section>
+
+<!-- ================= 3. KOD ÇÖZÜCÜ ALIŞTIRMASI (rastgele) ================= -->
+<section>
+  <div class="head"><h2>Kod çözücü alıştırması</h2><span class="ctx">Yeni soru için sayfayı yenileyin ya da Yeni soru'ya basın</span></div>
+  <div class="adimli" data-tur="kodcozucu"></div>
+</section>
+
+<!-- ================= 4. ÖNCELİKLİ KODLAYICI ALIŞTIRMASI (rastgele) ================= -->
+<section>
+  <div class="head"><h2>Öncelikli kodlayıcı alıştırması</h2><span class="ctx">Yeni soru için sayfayı yenileyin ya da Yeni soru'ya basın</span></div>
+  <div class="adimli" data-tur="oncelikli"></div>
+</section>
+
+<!-- ================= 5. ÇOKLAYICI ALIŞTIRMASI (rastgele) ================= -->
+<section>
+  <div class="head"><h2>Çoklayıcı alıştırması</h2><span class="ctx">Yeni soru için sayfayı yenileyin ya da Yeni soru'ya basın</span></div>
+  <div class="adimli" data-tur="cokla"></div>
+</section>
+
+<!-- ================= KOMBİNASYONEL MANTIK: GİRİŞ ================= -->
+<section class="cover">
+  <div class="slide-body">
+    <div class="course">Sayısal tasarım</div>
+    <h1>Kombinasyonel mantık devreleri</h1>
+    <p>Çıkışları yalnızca o anki girişlere bağlı olan devreler: bellek yok, geri besleme yok. $n$ giriş, $m$ çıkış; her çıkış girişlerin bir Boole fonksiyonu.</p>
+    <ol class="icindekiler">
+      <li>Analiz prosedürü</li>
+      <li>Tasarım prosedürü: kod dönüştürücü</li>
+      <li>Yarım toplayıcı</li>
+      <li>Tam toplayıcı</li>
+      <li>Paralel (dalgalı elde) toplayıcı</li>
+      <li>Elde öngörülü toplayıcı</li>
+      <li>Toplayıcı-çıkarıcı ve taşma</li>
+      <li>BCD toplayıcı</li>
+      <li>İkili çarpıcı</li>
+      <li>Büyüklük karşılaştırıcı</li>
+      <li>Kod çözücü ve fonksiyon gerçekleme</li>
+      <li>Öncelikli kodlayıcı</li>
+      <li>Çoklayıcı ve çoklayıcıyla fonksiyon gerçekleme</li>
+    </ol>
+    <p class="keys">Adım adım çözümler için <kbd>→</kbd> ya da <kbd>Boşluk</kbd>. Konu sırası: M. Morris Mano, <em>Digital Design</em>, Bölüm 4.</p>
+  </div>
+</section>
+
+<!-- ================= ANALİZ ================= -->
+<section>
+  <div class="head"><h2>Analiz prosedürü</h2><span class="ctx">Kombinasyonel mantık</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Şekildeki devrenin çıkış fonksiyonlarını ve doğruluk tablosunu bulun.</li>
+      <li class="fragment">Her kapı çıkışına bir ad verin ve yalnızca girişlere bağlı kapılardan başlayın: $T_1 = A\overline{B}$, $T_2 = BC$.</li>
+      <li class="fragment">Bir sonraki seviyeye geçin: $F = T_1 + T_2 = A\overline{B} + BC$.</li>
+      <li class="fragment">NOR kapısı için De Morgan: $G = \overline{A + C} = \overline{A}\,\overline{C}$.</li>
+      <li class="fragment">Her giriş kombinasyonu için çıkışları hesaplayıp doğruluk tablosunu doldurun. Sağdaki girişleri değiştirerek satırları kontrol edin.</li>
+      <li class="fragment sonuc">$F = \sum m(3,4,5,7)$ ve $G = \sum m(0,2)$.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="analiz" data-devre="analiz" data-label="Analiz edilecek devre: DEĞİL, iki VE, bir VEYA ve bir VEYADEĞİL kapısı" data-not="Soruda verilen devre. Diğer düğmeler, aynı fonksiyonların sadeleştirilmiş iki seviyeli karşılıklarını gösterir."></div>
+      <div class="yan">
+        <table class="dt" data-sim="analiz"></table>
+        <div class="sim" data-sim="analiz"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TASARIM: BCD → EXCESS-3 ================= -->
+<section>
+  <div class="head"><h2>Tasarım prosedürü: BCD'den excess-3 koduna</h2><span class="ctx">Kombinasyonel mantık</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">0–9 arasındaki bir BCD rakamını 3 fazlası (excess-3) koduna çeviren devreyi tasarlayın.</li>
+      <li class="fragment">Giriş ve çıkışları adlandırın: girişler $A,B,C,D$ ($A$ en anlamlı bit), çıkışlar $w,x,y,z$.</li>
+      <li class="fragment">Doğruluk tablosunu kurun: her satırda çıkış = giriş + 3. $1010$–$1111$ girişleri BCD'de hiç oluşmadığı için önemsizdir (X).</li>
+      <li class="fragment">Her çıkışı, önemsiz terimleri de kullanarak ayrı bir Karnaugh haritasıyla sadeleştirin (sonraki slayt, dört harita).</li>
+      <li class="fragment">$z = \overline{D}$, &nbsp; $y = CD + \overline{C}\,\overline{D}$</li>
+      <li class="fragment">$x = \overline{B}C + \overline{B}D + B\overline{C}\,\overline{D}$, &nbsp; $w = A + BC + BD$</li>
+      <li class="fragment">Kapı sayısını azaltmak için ortak terimler aranır: $y = \overline{C \oplus D}$ tek bir XNOR'dur.</li>
+      <li class="fragment sonuc">Haritalar, devre çizimleri ve $x$ için bir alıştırma sonraki slaytlarda.</li>
+    </ol>
+    <div class="gorsel">
+      <div class="yan">
+        <table class="dt" data-sim="ex3"></table>
+        <div class="sim" data-sim="ex3"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Excess-3 dönüştürücü: dört çıkışın haritaları</h2><span class="ctx">Tasarım prosedürü</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Her çıkış için ayrı bir harita. Satırlar $AB$, sütunlar $CD$; 10–15 hücreleri önemsiz (X) ve gruplara katılabilir.</li>
+      <li class="fragment">$w$: 1'ler 5–9. $A = 1$ satırları X'lerle birlikte sekizli bir grup verir: $A$. 5, 7 hücreleri 13, 15 ile $BD$ dörtlüsü; 6, 7 hücreleri 14, 15 ile $BC$ dörtlüsü. $w = A + BC + BD$.</li>
+      <li class="fragment">$x$: 1'ler 1, 2, 3, 4, 9. $\overline{B}D$ dörtlüsü (1, 3, 9, 11) ve $\overline{B}C$ dörtlüsü (2, 3, 10, 11). 4 hücresi yalnızca 12 (X) ile ikili olabilir: $B\overline{C}\,\overline{D}$.</li>
+      <li class="fragment">$y$: 1'ler 0, 3, 4, 7, 8. $CD = 11$ sütunu (3, 7, 11, 15) ve $CD = 00$ sütunu (0, 4, 8, 12) X'lerle tamamlanır: $y = CD + \overline{C}\,\overline{D}$.</li>
+      <li class="fragment">$z$: 1'ler 0, 2, 4, 6, 8. $D = 0$ olan iki sütun (kenarlar bağlı) X'lerle sekizli: $z = \overline{D}$.</li>
+      <li class="fragment sonuc">0'ları gruplamak için üstteki düğmeyi kullanın: toplamlar çarpımı biçimi VEYADEĞİL devresinin temelidir.</li>
+    </ol>
+    <div class="gorsel"><div class="haritalar" data-ifade="ex3"></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Excess-3 dönüştürücü: devre</h2><span class="ctx">Tasarım prosedürü</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Sadeleştirilmiş ifadelerden devreyi çizin. Üstteki düğmelerle kapı türünü, sağdakilerle çıkışı seçin.</li>
+      <li class="fragment"><b>VE–VEYA:</b> her çarpım terimi bir VE kapısı, çıkış bir VEYA kapısıdır. Tümlenmiş değişkenler için DEĞİL kapıları.</li>
+      <li class="fragment"><b>Yalnız VEDEĞİL:</b> çarpımlar toplamının iki kez tümleyeni alınır ve De Morgan uygulanır: $w = A + BC + BD = \overline{\overline{A}\cdot\overline{BC}\cdot\overline{BD}}$. İlk seviye VEDEĞİL, ikinci seviye de VEDEĞİL olur; tek değişkenli terim ($A$) ikinci seviyeye tümlenmiş olarak girer.</li>
+      <li class="fragment"><b>Yalnız VEYADEĞİL:</b> 0'lar gruplanır, toplamlar çarpımı bulunur ve iki kez tümlenir: $\prod (\ldots) = \overline{\sum \overline{(\ldots)}}$.</li>
+      <li class="fragment">Tümleyen gereken yerde girişleri birleştirilmiş bir VEDEĞİL (ya da VEYADEĞİL) kapısı DEĞİL kapısı gibi çalışır: $\overline{A\cdot A} = \overline{A}$.</li>
+      <li class="fragment sonuc">Her görünümün altında kapı sayısı var. Aynı çıkış için üç gerçeklemeyi karşılaştırın: $z$ için tek bir tümleyen yeter.</li>
+    </ol>
+    <div class="gorsel"><div data-ifade="ex3"></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Alıştırma: excess-3 kodunun $x$ çıkışı</h2><span class="ctx">Önemsiz terimler: BCD'de kullanılmayan 10–15</span></div>
+  <div class="kmap" data-vars="A,B,C,D" data-minterms="1,2,3,4,9" data-dontcares="10,11,12,13,14,15"></div>
+</section>
+
+<!-- ================= YARIM TOPLAYICI ================= -->
+<section>
+  <div class="head"><h2>Yarım toplayıcı</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">İki biti toplayan devreyi tasarlayın: girişler $x, y$; çıkışlar toplam $S$ ve elde $C$.</li>
+      <li class="fragment">Doğruluk tablosu: $1 + 1 = 10_2$, yani bu satırda $S = 0$, $C = 1$.</li>
+      <li class="fragment">$S$ yalnızca girişler farklıyken 1: $S = \overline{x}y + x\overline{y} = x \oplus y$.</li>
+      <li class="fragment">$C$ yalnızca iki giriş de 1 iken 1: $C = xy$.</li>
+      <li class="fragment">Devre: bir XOR ve bir AND kapısı.</li>
+      <li class="fragment sonuc">Neden "yarım"? Önceki basamaktan gelen eldeyi alacak üçüncü bir girişi yok.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="ha" data-devre="ha" data-kucuk="1" data-label="Yarım toplayıcı: XOR ve VE kapısı" data-not="Özgün devre XOR kullanır. Diğer düğmeler, aynı çıkışları yalnızca iki seviyeli kapılarla gösterir."></div>
+      <div class="yan">
+        <table class="dt" data-sim="ha"></table>
+        <div class="sim" data-sim="ha"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAM TOPLAYICI ================= -->
+<section>
+  <div class="head"><h2>Tam toplayıcı</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Üç biti toplayan devreyi tasarlayın: $x$, $y$ ve önceki basamaktan gelen elde $z$.</li>
+      <li class="fragment">Doğruluk tablosunda $CS$ ikilisi, girişlerdeki 1'lerin sayısının ikili karşılığıdır.</li>
+      <li class="fragment">$S = \sum m(1,2,4,7)$. Haritada hiçbir 1 komşu değil, sadeleşmez: $S = x \oplus y \oplus z$.</li>
+      <li class="fragment">$C = \sum m(3,5,6,7)$. Üç ikili grup: $C = xy + xz + yz$ (haritalar sonraki slaytta).</li>
+      <li class="fragment">İki yarım toplayıcı ve bir OR ile: $S = (x \oplus y) \oplus z$, &nbsp; $C = xy + z(x \oplus y)$.</li>
+      <li class="fragment sonuc">İki ifade eşdeğer: $z(x \oplus y) = x\overline{y}z + \overline{x}yz$, bu da $xz + yz$'nin $xy$ tarafından kapsanmayan kısmıdır.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="fa" data-devre="fa" data-label="İki yarım toplayıcı ve bir VEYA kapısıyla tam toplayıcı" data-not="İki yarım toplayıcı ve bir VEYA kapısı. S'nin iki seviyeli karşılığı dört terim gerektirir; diğer düğmelerle karşılaştırın."></div>
+      <div class="yan">
+        <table class="dt" data-sim="fa"></table>
+        <div class="sim" data-sim="fa"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Yarım ve tam toplayıcı haritaları</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Her çıkış için ayrı bir harita. Toplam çıkışlarındaki satranç tahtası deseni XOR'un işaretidir.</li>
+      <li class="fragment">Yarım toplayıcı $S$: 1'ler 01 ve 10 hücrelerinde, komşu değiller. İki tek hücreli grup: $S = \overline{x}y + x\overline{y} = x \oplus y$.</li>
+      <li class="fragment">Yarım toplayıcı $C$: tek hücre (11): $C = xy$.</li>
+      <li class="fragment">Tam toplayıcı $S$: 1, 2, 4, 7 hücrelerinin hiçbiri komşu değil; dört tek hücreli grup: $S = \overline{x}\,\overline{y}z + \overline{x}y\overline{z} + x\overline{y}\,\overline{z} + xyz$.</li>
+      <li class="fragment">Bu dört terim $x \oplus y \oplus z$'ye eşittir: tek sayıda 1 içeren girişlerde $S = 1$.</li>
+      <li class="fragment">Tam toplayıcı $C$: 3, 5, 6, 7. Hücre 7 her üç ikili grubun ortak hücresidir: $C = xy + xz + yz$.</li>
+      <li class="fragment sonuc">İki seviyeli devrede $S$ pahalıdır (4 terim × 3 değişken); bu yüzden özgün devrelerde XOR kullanılır.</li>
+    </ol>
+    <div class="gorsel"><div class="haritalar" data-ifade="ha,fa"></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Alıştırma: tam toplayıcının elde çıkışı</h2><span class="ctx">$C = 1$ olduğunda girişlerden en az ikisi 1'dir</span></div>
+  <div class="kmap" data-vars="x,y,z" data-minterms="3,5,6,7"></div>
+</section>
+
+<!-- ================= PARALEL TOPLAYICI ================= -->
+<section>
+  <div class="head"><h2>Paralel (dalgalı elde) toplayıcı</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">İki 4 bitlik sayıyı toplayın. Dört tam toplayıcı zincirlenir: her basamağın elde çıkışı, bir sonrakinin elde girişidir.</li>
+      <li class="fragment">Örnek: $A = 0110\ (6)$, $B = 0111\ (7)$, $C_0 = 0$.
+        <table class="hesap">
+          <tr><th>$i$</th><td>3</td><td>2</td><td>1</td><td>0</td></tr>
+          <tr><th>Elde girişi $C_i$</th><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+          <tr><th>$A_i$</th><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+          <tr><th>$B_i$</th><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr class="vurgu"><th>Toplam $S_i$</th><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+          <tr><th>Elde çıkışı $C_{i+1}$</th><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        </table>
+      </li>
+      <li class="fragment">Sağdan sola: bit 0'da $0+1+0 = 1$; bit 1'de $1+1+0 = 10_2$, elde 1; bit 2'de $1+1+1 = 11_2$, elde 1; bit 3'te $0+0+1 = 1$.</li>
+      <li class="fragment">Sonuç: $S = 1101 = 13$, $C_4 = 0$.</li>
+      <li class="fragment sonuc">Sorun: her basamak, önceki basamaktan eldenin gelmesini bekler. Gecikme bit sayısıyla doğrusal artar.</li>
+    </ol>
+    <div class="gorsel">
+      <svg class="devre" data-devre="ripple" role="img" aria-label="Dört tam toplayıcıdan oluşan paralel toplayıcı"></svg>
+      <div class="sim" data-sim="ripple"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ELDE ÖNGÖRÜLÜ ================= -->
+<section>
+  <div class="head"><h2>Elde öngörülü toplayıcı</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Eldeyi basamak basamak beklemeden, doğrudan girişlerden hesaplayın.</li>
+      <li class="fragment">Her basamak için iki sinyal: elde yayma $P_i = A_i \oplus B_i$ ve elde üretme $G_i = A_iB_i$.</li>
+      <li class="fragment">Bunlarla $S_i = P_i \oplus C_i$ ve $C_{i+1} = G_i + P_iC_i$.</li>
+      <li class="fragment">Yineleme açılır: $C_1 = G_0 + P_0C_0$, &nbsp; $C_2 = G_1 + P_1G_0 + P_1P_0C_0$</li>
+      <li class="fragment">$C_3 = G_2 + P_2G_1 + P_2P_1G_0 + P_2P_1P_0C_0$</li>
+      <li class="fragment">Tüm eldeler yalnızca $P$, $G$ ve $C_0$'a bağlıdır: hepsi iki kapı seviyesinde, aynı anda hesaplanır.</li>
+      <li class="fragment">Önceki örnek: $A = 0110$, $B = 0111$ için $G = 0110$, $P = 0001$. $C_1 = 0$, $C_2 = G_1 = 1$, $C_3 = G_2 + P_2G_1 = 1$, $C_4 = 0$.</li>
+      <li class="fragment sonuc">$S = P \oplus C = 1101$: paralel toplayıcıyla aynı sonuç, ama dalgalanma yok.</li>
+    </ol>
+    <div class="gorsel">
+      <div class="sim" data-sim="cla"></div>
+      <p class="not">$P$ ve $G$ sinyallerinin her bitini girişleri değiştirerek izleyin. $P_i = 1$ olan basamak gelen eldeyi aynen geçirir; $G_i = 1$ olan basamak kendi eldesini üretir.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TOPLAYICI-ÇIKARICI ================= -->
+<section>
+  <div class="head"><h2>Toplayıcı-çıkarıcı ve taşma</h2><span class="ctx">Toplayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Aynı devreyle hem toplama hem çıkarma yapın. İkiye tümleyenle $A - B = A + \overline{B} + 1$.</li>
+      <li class="fragment">Her $B_i$ bir XOR'dan geçer; $M$ kontrol girişi XOR'lara ve $C_0$'a bağlanır.</li>
+      <li class="fragment">$M = 0$: XOR'lar $B$'yi değiştirmez, $C_0 = 0$, devre $A + B$ yapar. $M = 1$: XOR'lar $B$'yi tümler, $C_0 = 1$, devre $A - B$ yapar.</li>
+      <li class="fragment">Örnek 1: $0101 - 0011$: $0101 + 1100 + 1 = 1\,0010$. Sonuç $0010 = 2$, $C_4 = 1$.</li>
+      <li class="fragment">İşaretsiz sayılarda çıkarmadan sonra $C_4 = 1$ ise $A \ge B$; $C_4 = 0$ ise sonuç negatiftir ve ikiye tümleyen biçimindedir.</li>
+      <li class="fragment">İşaretli sayılarda taşma, son iki eldenin farklı olmasıdır: $V = C_4 \oplus C_3$.</li>
+      <li class="fragment sonuc">Örnek 2: $0110 + 0011$ ($6 + 3$): $S = 1001$, $C_3 = 1$, $C_4 = 0$, $V = 1$. 4 bitte en büyük işaretli sayı $+7$; sonuç $-7$ gibi görünür: taşma.</li>
+    </ol>
+    <div class="gorsel">
+      <svg class="devre" data-devre="addsub" role="img" aria-label="XOR kapılı 4 bitlik toplayıcı-çıkarıcı ve taşma çıkışı"></svg>
+      <div class="sim" data-sim="addsub"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BCD TOPLAYICI ================= -->
+<section>
+  <div class="head"><h2>BCD toplayıcı</h2><span class="ctx">Ondalık aritmetik</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">İki BCD rakamını toplayıp sonucu yine BCD olarak verin.</li>
+      <li class="fragment">Önce sıradan bir 4 bitlik toplayıcı ikili toplamı verir: $K Z_8 Z_4 Z_2 Z_1$ (0–19 arası).</li>
+      <li class="fragment">Toplam 9'dan büyükse BCD değildir. Kullanılmayan altı kodu atlamak için $6 = 0110$ eklenir.</li>
+      <li class="fragment">Düzeltme koşulu: $C = K + Z_8Z_4 + Z_8Z_2$. $C$ aynı zamanda bir sonraki rakama giden eldedir.</li>
+      <li class="fragment">Örnek 1: $4 + 3 = 0111$, $C = 0$: düzeltme yok, sonuç 7.</li>
+      <li class="fragment">Örnek 2: $7 + 8 = 1111$, $Z_8Z_4 = 1$, $C = 1$. $1111 + 0110 = 1\,0101$: rakam 5, elde 1, yani 15.</li>
+      <li class="fragment sonuc">Örnek 3: $9 + 9 = 1\,0010$, $K = 1$, $C = 1$. $0010 + 0110 = 1000$: rakam 8, elde 1, yani 18.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="bcdc" data-devre="bcd" data-label="BCD toplayıcı: iki 4 bitlik toplayıcı ve düzeltme mantığı" data-not="Blok şema. Diğer düğmeler yalnızca düzeltme çıkışı C'nin kapı devresini gösterir."></div>
+      <div class="sim" data-sim="bcd"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>BCD düzeltme koşulunun haritası</h2><span class="ctx">Ondalık aritmetik</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Düzeltme çıkışı $C$, ikili toplam 9'dan büyük olduğunda 1 olmalıdır.</li>
+      <li class="fragment">$K = 1$ ise toplam en az 16'dır: her zaman düzeltme. Bu, ifadeye doğrudan $K$ terimi olarak girer.</li>
+      <li class="fragment">$K = 0$ iken $Z_8Z_4Z_2Z_1$ için harita: 10–15 hücreleri 1, diğerleri 0.</li>
+      <li class="fragment">$Z_8Z_4 = 11$ satırı (12–15) bir dörtlü: $Z_8Z_4$.</li>
+      <li class="fragment">$Z_8 = 1$, $Z_2 = 1$ hücreleri (10, 11, 14, 15) bir dörtlü daha: $Z_8Z_2$.</li>
+      <li class="fragment sonuc">$C = K + Z_8Z_4 + Z_8Z_2$.</li>
+    </ol>
+    <div class="gorsel"><div class="haritalar" data-ifade="bcdk"></div></div>
+  </div>
+</section>
+
+<!-- ================= İKİLİ ÇARPICI ================= -->
+<section>
+  <div class="head"><h2>İkili çarpıcı</h2><span class="ctx">Aritmetik devreler</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">İki bitlik $A = A_1A_0$ ile $B = B_1B_0$'ı çarpın. Kâğıt üzerindeki gibi kısmi çarpımlar toplanır.</li>
+      <li class="fragment">Bir bitin bir bitle çarpımı AND işlemidir.
+        <table class="hesap carpim">
+          <tr><td></td><td></td><td>$A_1$</td><td>$A_0$</td></tr>
+          <tr><td></td><td>×</td><td>$B_1$</td><td>$B_0$</td></tr>
+          <tr class="ust"><td></td><td></td><td>$A_1B_0$</td><td>$A_0B_0$</td></tr>
+          <tr><td></td><td>$A_1B_1$</td><td>$A_0B_1$</td><td></td></tr>
+          <tr class="ust vurgu"><td>$C_3$</td><td>$C_2$</td><td>$C_1$</td><td>$C_0$</td></tr>
+        </table>
+      </li>
+      <li class="fragment">$C_0 = A_0B_0$. İkinci sütunu bir yarım toplayıcı toplar: $C_1 = A_1B_0 \oplus A_0B_1$, eldesi $k_1$.</li>
+      <li class="fragment">Üçüncü sütun ikinci yarım toplayıcıda: $C_2 = A_1B_1 \oplus k_1$, eldesi $C_3$.</li>
+      <li class="fragment">Örnek: $11 \times 11$ ($3 \times 3$): $C_0 = 1$, $C_1 = 1 \oplus 1 = 0$ ($k_1 = 1$), $C_2 = 1 \oplus 1 = 0$, $C_3 = 1$. Sonuç $1001 = 9$.</li>
+      <li class="fragment sonuc">Genel olarak $K$ bitlik bir sayıyı $J$ bitlik bir sayıyla çarpmak için $J \times K$ AND kapısı ve $J - 1$ tane $K$ bitlik toplayıcı gerekir.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="mult" data-devre="mult" data-label="Dört VE kapısı ve iki yarım toplayıcıyla 2×2 bit çarpıcı" data-not="VE kapıları ve yarım toplayıcılarla. Diğer düğmeler her çıkışı dört girişin doğrudan iki seviyeli fonksiyonu olarak gösterir."></div>
+      <div class="sim" data-sim="mult"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BÜYÜKLÜK KARŞILAŞTIRICI ================= -->
+<section>
+  <div class="head"><h2>Büyüklük karşılaştırıcı</h2><span class="ctx">Karşılaştırma</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">İki 4 bitlik sayıyı karşılaştırın: çıkışlar $(A > B)$, $(A = B)$, $(A \lt B)$.</li>
+      <li class="fragment">Önce her bitin eşitliği: $x_i = A_iB_i + \overline{A_i}\,\overline{B_i}$ (XNOR). $A_i = B_i$ ise $x_i = 1$.</li>
+      <li class="fragment">Tüm bitler eşitse sayılar eşittir: $(A = B) = x_3x_2x_1x_0$.</li>
+      <li class="fragment">En anlamlı bitten başlanır; ilk farklı bit sonucu belirler: $(A > B) = A_3\overline{B_3} + x_3A_2\overline{B_2} + x_3x_2A_1\overline{B_1} + x_3x_2x_1A_0\overline{B_0}$</li>
+      <li class="fragment">$(A \lt B)$ aynı biçimde, $A$ ile $B$'nin yeri değiştirilerek bulunur.</li>
+      <li class="fragment sonuc">Örnek: $A = 1011$, $B = 1001$. $x_3 = x_2 = 1$; bit 1'de $A_1 = 1$, $B_1 = 0$, yani $x_3x_2A_1\overline{B_1} = 1$ ve $A > B$.</li>
+    </ol>
+    <div class="gorsel">
+      <div class="sim" data-sim="comp"></div>
+      <p class="not">Girişleri değiştirirken $x_i$ satırını izleyin: soldan ilk $x_i = 0$ olan bit, hangi sayının büyük olduğunu belirler.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= KOD ÇÖZÜCÜ ================= -->
+<section>
+  <div class="head"><h2>Kod çözücü</h2><span class="ctx">Kod çözücüler ve kodlayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">$n$ girişli bir kod çözücü, $2^n$ çıkışından yalnızca girişin numarasına karşılık geleni 1 yapar.</li>
+      <li class="fragment">3'ten 8'e kod çözücüde her çıkış bir mintermdir: $D_0 = \overline{A}\,\overline{B}\,\overline{C}$, $D_1 = \overline{A}\,\overline{B}C$, …, $D_7 = ABC$.</li>
+      <li class="fragment">Etkinleştirme girişi $E$: $E = 0$ iken bütün çıkışlar 0'dır.</li>
+      <li class="fragment">$E$ veri, $A,B,C$ seçme girişi olarak kullanılırsa devre bir veri dağıtıcıdır (demultiplexer).</li>
+      <li class="fragment">Örnek: $E = 1$ ve $ABC = 101$ ise yalnızca $D_5 = 1$.</li>
+      <li class="fragment sonuc">Büyük kod çözücüler küçüklerden kurulur: iki 3×8 kod çözücü, etkinleştirme girişleriyle bir 4×16 kod çözücü yapar.</li>
+    </ol>
+    <div class="gorsel">
+      <div class="yan">
+        <table class="dt" data-sim="dec" data-fix="E=1"></table>
+        <div class="sim" data-sim="dec"></div>
+      </div>
+      <p class="not">Tablo $E = 1$ için verilmiştir.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= KOD ÇÖZÜCÜYLE FONKSİYON ================= -->
+<section>
+  <div class="head"><h2>Kod çözücüyle fonksiyon gerçekleme</h2><span class="ctx">Kod çözücüler ve kodlayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">$F_1 = \sum m(0,3,5)$ ve $F_2 = \sum m(1,2,6)$ fonksiyonlarını bir 3×8 kod çözücüyle gerçekleyin.</li>
+      <li class="fragment">Kod çözücü bütün mintermleri ürettiği için, her fonksiyon ilgili çıkışların OR'udur.</li>
+      <li class="fragment">$F_1 = D_0 + D_3 + D_5$: üç girişli bir OR kapısı.</li>
+      <li class="fragment">$F_2 = D_1 + D_2 + D_6$: ikinci bir OR kapısı.</li>
+      <li class="fragment">Çok sayıda 1'i olan bir fonksiyonda, az sayıdaki 0'ları bir NOR ile toplamak daha az kapı girişi gerektirir.</li>
+      <li class="fragment sonuc">Kontrol: $ABC = 011$ için yalnızca $D_3 = 1$, dolayısıyla $F_1 = 1$ ve $F_2 = 0$.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="decf" data-devre="decf" data-label="3×8 kod çözücü ve iki VEYA kapısı" data-not="Kod çözücüyle gerçekleme. Diğer düğmeler aynı fonksiyonları kod çözücü olmadan, sadeleştirilmiş kapılarla gösterir."></div>
+      <div class="sim" data-sim="decf"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ÖNCELİKLİ KODLAYICI ================= -->
+<section>
+  <div class="head"><h2>Öncelikli kodlayıcı</h2><span class="ctx">Kod çözücüler ve kodlayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Kodlayıcı, kod çözücünün tersidir: 1 olan girişin numarasını ikili koda çevirir. 4 girişli öncelikli kodlayıcıyı tasarlayın.</li>
+      <li class="fragment">Sorun: aynı anda birden fazla giriş 1 olabilir. Öncelikli kodlayıcı en yüksek öncelikli girişi seçer; burada $D_3$ en yüksek.</li>
+      <li class="fragment">Hiçbir giriş 1 değilse çıkış anlamsızdır; geçerlilik çıkışı $V = D_0 + D_1 + D_2 + D_3$ bunu bildirir.</li>
+      <li class="fragment">Tablo X'lerle kısaltılır: daha yüksek öncelikli bir giriş 1 iken alttakilerin değeri önemli değildir.</li>
+      <li class="fragment">Haritalardan: $x = D_2 + D_3$, &nbsp; $y = D_3 + D_1\overline{D_2}$.</li>
+      <li class="fragment sonuc">Örnek: $D_3D_2D_1D_0 = 0110$. En yüksek öncelikli 1, $D_2$'de: $xy = 10$, $V = 1$.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="enc" data-kucuk="1"></div>
+      <div class="yan">
+        <table class="dt elle">
+          <tr><th>$D_3$</th><th>$D_2$</th><th>$D_1$</th><th>$D_0$</th><th class="o">$x$</th><th class="o">$y$</th><th class="o">$V$</th></tr>
+          <tr><td>0</td><td>0</td><td>0</td><td>0</td><td class="o x">X</td><td class="o x">X</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>0</td><td>0</td><td>1</td><td class="o">0</td><td class="o">0</td><td class="o">1</td></tr>
+          <tr><td>0</td><td>0</td><td>1</td><td>X</td><td class="o">0</td><td class="o">1</td><td class="o">1</td></tr>
+          <tr><td>0</td><td>1</td><td>X</td><td>X</td><td class="o">1</td><td class="o">0</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>X</td><td>X</td><td>X</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+        </table>
+        <div class="sim" data-sim="enc"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>Öncelikli kodlayıcı haritaları</h2><span class="ctx">Kod çözücüler ve kodlayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Satırlar $D_3D_2$, sütunlar $D_1D_0$. Hiçbir giriş 1 değilken (hücre 0) $x$ ve $y$ önemsizdir.</li>
+      <li class="fragment">$x$: $D_3 = 1$ ya da $D_2 = 1$ olan her hücrede 1. $D_2 = 1$ satırları (01 ve 11) ile $D_3 = 1$ satırları (11 ve 10) iki sekizli grup: $x = D_2 + D_3$.</li>
+      <li class="fragment">$y$: $D_3 = 1$ olan alt iki satır sekizli bir grup: $D_3$.</li>
+      <li class="fragment">$D_3 = D_2 = 0$ iken $D_1 = 1$ olan 2 ve 3 hücreleri, $D_3 = 1$ satırındaki 10 ve 11 ile dörtlü olur: $\overline{D_2}D_1$. Böylece $y = D_3 + \overline{D_2}D_1$.</li>
+      <li class="fragment">$V$: yalnızca 0 hücresi 0. Dört sekizli grup: $V = D_3 + D_2 + D_1 + D_0$.</li>
+      <li class="fragment sonuc">$V$'nin 0'ları gruplanırsa tek bir toplam terimi kalır: tek bir VEYADEĞİL ve bir tümleyen yeter.</li>
+    </ol>
+    <div class="gorsel"><div class="haritalar" data-ifade="enc"></div></div>
+  </div>
+</section>
+
+<!-- ================= ÇOKLAYICI ================= -->
+<section>
+  <div class="head"><h2>Çoklayıcı (multiplexer)</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">Seçme girişlerine göre veri girişlerinden birini çıkışa aktaran devre. 4×1 çoklayıcı: 4 veri, 2 seçme girişi.</li>
+      <li class="fragment">$Y = \overline{S_1}\,\overline{S_0}I_0 + \overline{S_1}S_0I_1 + S_1\overline{S_0}I_2 + S_1S_0I_3$</li>
+      <li class="fragment">Her terim, seçme girişlerinin bir mintermi ile bir veri girişinin AND'idir: içinde bir kod çözücü vardır.</li>
+      <li class="fragment">Örnek: $S_1S_0 = 10$ ise yalnızca üçüncü terim etkin olabilir ve $Y = I_2$.</li>
+      <li class="fragment sonuc">Üç durumlu (three-state) tamponlarla da kurulabilir: seçilmeyen girişlerin tamponları yüksek empedansta kalır ve çıkış hattını sürmez.</li>
+    </ol>
+    <div class="gorsel">
+      <svg class="devre kucuk" data-devre="mux" role="img" aria-label="4×1 çoklayıcı blok şeması"></svg>
+      <div class="sim" data-sim="mux"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ÇOKLAYICIYLA FONKSİYON ================= -->
+<section>
+  <div class="head"><h2>Çoklayıcıyla Boole fonksiyonu</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu">
+    <ol class="adim">
+      <li class="soru">$F(A,B,C) = \sum m(0,3,4,5)$ fonksiyonunu bir 4×1 çoklayıcıyla gerçekleyin.</li>
+      <li class="fragment">$n$ değişkenli bir fonksiyon için $2^{n-1}$×1 çoklayıcı yeter: ilk $n-1$ değişken seçme girişlerine, son değişken veri girişlerine gider.</li>
+      <li class="fragment">$A, B$ seçme girişleri. Her $AB$ değeri için $F$, yalnızca $C$'nin bir fonksiyonudur: $C$, $\overline{C}$, 0 ya da 1.</li>
+      <li class="fragment">$AB = 00$: $m_0 = 1$, $m_1 = 0$, yani $F = \overline{C}$ ve $I_0 = \overline{C}$.</li>
+      <li class="fragment">$AB = 01$: $m_2 = 0$, $m_3 = 1$, yani $I_1 = C$.</li>
+      <li class="fragment">$AB = 10$: $m_4 = m_5 = 1$, yani $I_2 = 1$. &nbsp; $AB = 11$: $m_6 = m_7 = 0$, yani $I_3 = 0$.</li>
+      <li class="fragment sonuc">Bir NOT kapısı ve bir 4×1 çoklayıcı yeterli. Sağdaki girişlerle sekiz mintermi tek tek kontrol edin.</li>
+    </ol>
+    <div class="gorsel">
+      <div data-ifade="muxf" data-devre="muxf" data-kucuk="1" data-label="F fonksiyonunu gerçekleyen 4×1 çoklayıcı ve DEĞİL kapısı" data-not="Çoklayıcıyla gerçekleme. Diğer düğmeler aynı fonksiyonu kapılarla gösterir."></div>
+      <div class="sim" data-sim="muxf"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ÇOKLAYICIYLA TASARIM: YÖNTEM ================= -->
+<section>
+  <div class="head"><h2>Çoklayıcıyla tasarım: yöntem</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu mx-konu">
+    <ol class="adim">
+      <li class="soru">Çoklayıcı, seçme girişlerinin her değeri için bir veri girişini çıkışa bağlar. Her Boole fonksiyonu, seçme değişkenlerine göre parçalanarak böyle kurulabilir.</li>
+      <li class="fragment">Shannon açılımı: $F = \overline{S_1}\,\overline{S_0}\,F_{00} + \overline{S_1}S_0\,F_{01} + S_1\overline{S_0}\,F_{10} + S_1S_0\,F_{11}$. $F_{ab}$, seçme değişkenleri $ab$ değerine sabitlenince $F$'den geriye kalan fonksiyondur.</li>
+      <li class="fragment">Bu, 4×1 çoklayıcının denkleminin aynısıdır. Yani $I_k = F_k$ yapmak yeter.</li>
+      <li class="fragment"><b>1. adım:</b> Seçme girişlerine hangi değişkenlerin gideceğini seçin. Her seçim doğru sonuç verir; fark, veri girişlerinin ne kadar basit olduğundadır.</li>
+      <li class="fragment"><b>2. adım:</b> Uygulama tablosunu kurun: her satır bir veri girişi, her sütun kalan değişkenlerin bir değeri. $F = 1$ olan mintermler daire içinde.</li>
+      <li class="fragment"><b>3. adım:</b> Satırları okuyun: hiç daire yoksa $I_k = 0$, hepsi daireliyse $I_k = 1$, aksi hâlde $I_k$ kalan değişkenlerin bir fonksiyonudur.</li>
+      <li class="fragment sonuc">$n$ değişken ve $2^{n-1}$×1 çoklayıcıda tek değişken kalır: her giriş $0$, $1$, $x$ ya da $\overline{x}$ olur ve en fazla bir DEĞİL kapısı gerekir.</li>
+    </ol>
+    <div class="gorsel"><div class="mx-tasarim" data-vars="A,B,C" data-minterms="0,3,4,5" data-secim="A,B"></div></div>
+  </div>
+</section>
+
+<!-- ================= SEÇME BİTLERİNİ SEÇMEK ================= -->
+<section>
+  <div class="head"><h2>Seçme girişleri neye göre seçilir?</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu mx-konu">
+    <ol class="adim">
+      <li class="soru">$F(A,B,C) = \sum m(0,1,6,7)$ için 4×1 çoklayıcıda üç seçim karşılaştırılır. Sağdaki düğmelerle seçimi değiştirin.</li>
+      <li class="fragment">Seçme $AB$, veri $C$: satırlar $(m_0,m_1)$, $(m_2,m_3)$, $(m_4,m_5)$, $(m_6,m_7)$; değerler $(1,1)$, $(0,0)$, $(0,0)$, $(1,1)$. Girişler $1, 0, 0, 1$: ek kapı yok.</li>
+      <li class="fragment">Seçme $AC$, veri $B$: girişler $\overline{B}, \overline{B}, B, B$. Bir DEĞİL kapısı gerekir.</li>
+      <li class="fragment">Seçme $BC$, veri $A$: girişler $\overline{A}, \overline{A}, A, A$. Yine bir DEĞİL kapısı.</li>
+      <li class="fragment">Neden? $F = \overline{A}\,\overline{B} + AB$ ve $C$'ye hiç bağlı değil. $C$'yi veri tarafına bırakan seçimde her satırın iki mintermi aynı değeri alır, girişler sabite dönüşür.</li>
+      <li class="fragment sonuc">Kural: fonksiyonun en çok bağlı olduğu değişkenleri seçme girişlerine verin; böylece veri girişleri sabitlere yaklaşır. Tabloda her seçimin ek kapı sayısı var, en ucuzu yeşil.</li>
+    </ol>
+    <div class="gorsel"><div class="mx-tasarim" data-vars="A,B,C" data-minterms="0,1,6,7" data-secim="A,B" data-karsilastir="1"></div></div>
+  </div>
+</section>
+
+<!-- ================= 4 DEĞİŞKEN, 8×1 ================= -->
+<section>
+  <div class="head"><h2>Dört değişken, 8×1 çoklayıcı</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu mx-konu">
+    <ol class="adim">
+      <li class="soru">$F(A,B,C,D) = \sum m(0,1,3,6,7,9,12,14)$ fonksiyonunu bir 8×1 çoklayıcıyla gerçekleyin.</li>
+      <li class="fragment">Seçme $ABC$, veri değişkeni $D$. Her satırda iki minterm var: $D = 0$ ve $D = 1$.</li>
+      <li class="fragment">$I_0$: $m_0 = m_1 = 1$, yani $1$. &nbsp; $I_1$: $m_2 = 0$, $m_3 = 1$, yani $D$. &nbsp; $I_2$: $m_4 = m_5 = 0$, yani $0$.</li>
+      <li class="fragment">$I_3$: $m_6 = m_7 = 1$, yani $1$. &nbsp; $I_4$: $m_8 = 0$, $m_9 = 1$, yani $D$. &nbsp; $I_5$: $m_{10} = m_{11} = 0$, yani $0$.</li>
+      <li class="fragment">$I_6$: $m_{12} = 1$, $m_{13} = 0$, yani $\overline{D}$. &nbsp; $I_7$: $m_{14} = 1$, $m_{15} = 0$, yani $\overline{D}$.</li>
+      <li class="fragment sonuc">Dört tür girişin hepsi görülüyor: $0$, $1$, $D$, $\overline{D}$. Tek DEĞİL kapısı yeterli. Seçimi değiştirip diğer üç seçimin tablolarını karşılaştırın.</li>
+    </ol>
+    <div class="gorsel"><div class="mx-tasarim" data-vars="A,B,C,D" data-minterms="0,1,3,6,7,9,12,14" data-secim="A,B,C" data-karsilastir="1"></div></div>
+  </div>
+</section>
+
+<!-- ================= 4 DEĞİŞKEN, 4×1 ================= -->
+<section>
+  <div class="head"><h2>Dört değişken, 4×1 çoklayıcı</h2><span class="ctx">Çoklayıcılar</span></div>
+  <div class="konu mx-konu">
+    <ol class="adim">
+      <li class="soru">Aynı fonksiyon daha küçük, 4×1 bir çoklayıcıyla kurulabilir mi? Evet: iki değişken seçmeye gider, kalan ikisi veri girişlerinde küçük devreler oluşturur.</li>
+      <li class="fragment">Seçme $AB$: her satır $CD$'nin dört değerine karşılık gelen dört minterm içerir; her satır 2 değişkenli bir fonksiyondur, küçük bir Karnaugh haritası gibi okunur.</li>
+      <li class="fragment">$AB = 00$: $m_0, m_1, m_2, m_3 = 1, 1, 0, 1$. Tek 0, $CD = 10$'da: $I_0 = \overline{C} + D$.</li>
+      <li class="fragment">$AB = 01$: $0, 0, 1, 1$, yani $I_1 = C$. &nbsp; $AB = 10$: $0, 1, 0, 0$, yani $I_2 = \overline{C}D$.</li>
+      <li class="fragment">$AB = 11$: $1, 0, 1, 0$, yani $I_3 = \overline{D}$.</li>
+      <li class="fragment">Ek devre: iki DEĞİL, bir VE, bir VEYA. Çoklayıcı küçüldükçe dışarıdaki kapılar artar.</li>
+      <li class="fragment sonuc">Altı seçimin hepsi tabloda. Bu fonksiyonda en ucuzu $AB$ (4 ek kapı); $AC$ ya da $AD$ seçilirse bir giriş XOR'a dönüşür ve 7 kapı gerekir.</li>
+    </ol>
+    <div class="gorsel"><div class="mx-tasarim" data-vars="A,B,C,D" data-minterms="0,1,3,6,7,9,12,14" data-secme="2" data-secim="A,B" data-karsilastir="1"></div></div>
+  </div>
+</section>
+
+
+
+
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+<script>
+/* ===================== INTERFACE TEXT ===================== */
+const TEXT = {
+  stepFill: "Haritayı doldur",
+  stepGroup: "1'leri grupla",
+  stepDone: "Bitti",
+  helpFill: "F = 1 olan her hücreye tıklayıp işaretleyin. Boş bırakılan hücreler 0 sayılır.",
+  helpFillDc: "F = 1 olan hücrelere bir kez, önemsiz (don't care) hücrelere iki kez tıklayıp X yazın. Boş hücreler 0 sayılır.",
+  helpGroup: "Bir grubun hücrelerini seçip grubu ekleyin. Tüm 1'ler kapsanana kadar tekrarlayın.",
+  helpDone: "Çözüldü. Başka bir en sade gruplama deneyebilir ya da sonraki slayta geçebilirsiniz.",
+  checkMap: "Haritayı kontrol et",
+  addGroup: "Grup ekle",
+  clearSel: "Seçimi temizle",
+  checkGroups: "Çözümü kontrol et",
+  reset: "Baştan başla",
+  showSolution: "Çözümü göster",
+  noGroups: "Henüz grup yok.",
+  resultLabel: "Sadeleştirilmiş ifade",
+  resultPending: "Gruplama doğru olduğunda burada görünür",
+  mapWrong: n => `${n} hücre yanlış işaretli; kırmızı çerçeveyle gösterildi.`,
+  mapOk: "Harita doğru. Şimdi 1'leri gruplayın.",
+  selEmpty: "Önce hücre seçin.",
+  selHasZero: "Bir grupta yalnızca 1 ve X bulunabilir.",
+  selShape: "Bu geçerli bir grup değil. Gruplar 1, 2, 4 ya da 8 hücreli dikdörtgenlerdir; kenarlar karşı kenara bağlıdır.",
+  selOnlyDc: "Yalnızca X'lerden oluşan bir grup hiçbir 1'i kapsamaz.",
+  selDuplicate: "Bu grup zaten var.",
+  notPrime: list => list.length > 1
+    ? `${list.join(", ")} numaralı gruplar büyütülebilir. Büyük gruplar daha kısa terim verir.`
+    : `${list[0]} numaralı grup büyütülebilir. Büyük gruplar daha kısa terim verir.`,
+  uncovered: n => `${n} tane 1 henüz kapsanmadı (kırmızı altı çizili).`,
+  redundant: list => list.length > 1
+    ? `${list.join(", ")} numaralı gruplar aynı 1'leri kapsıyor; en az biri kaldırılabilir.`
+    : `${list[0]} numaralı grup gereksiz: 1'leri zaten diğer gruplarca kapsanıyor.`,
+  notMinimal: (k, l) => `Tüm 1'ler kapsandı, ama ${k} grup ve toplam ${l} değişkenle daha sade bir çözüm var.`,
+  solved: "Doğru, bu en sade çarpımlar toplamı.",
+  shown: "İşte en sade çözümlerden biri.",
+  zero: "F'nin hiç 1'i yok; F = 0 ve gruplanacak bir şey yok.",
+  newProblem: "Yeni soru",
+  cellLabel: (m, v) => "minterm " + m + ", " + (v === "1" ? "bir" : v === "X" ? "önemsiz" : "sıfır"),
+  removeGroup: i => i + ". grubu kaldır",
+  badVars: "data-vars 2, 3 ya da 4 değişken içermeli.",
+  // Quine–McCluskey
+  qmNext: "Sonraki adım",
+  qmAll: "Tüm adımları göster",
+  qmRestart: "Baştan",
+  qmCol: ["Mintermler", "İkililer", "Dörtlüler", "Sekizliler"],
+  qmColN: k => k + "'lı gruplar",
+  qmHead: ["1 sayısı", "Mintermler", "Desen", ""],
+  qmChart: "Asal terim tablosu",
+  qmSay: [
+    "<b>Başlangıç.</b> Bu fonksiyonu Quine–McCluskey yöntemiyle çözmek için Sonraki adım'a basın.",
+    "<b>1. adım.</b> Her minterm ve önemsiz terim (gri) ikili olarak yazılır ve içindeki 1 sayısına göre gruplanır.",
+    "<b>Birleştirme.</b> Komşu gruplarda tam bir bitte farklı olan terimler, o bitin yerine tire konarak tek terimde birleşir. Birleşen terimler ✓ alır.",
+    "<b>Asal terimler.</b> Daha fazla birleşemeyen terimler asal terimlerdir: P1, P2, …",
+    "<b>Tablo.</b> Her asal terim bir satır, fonksiyonun her 1'i bir sütundur. Önemsiz terimler için sütun yoktur.",
+    "<b>Temel asal terimler.</b> Tek X içeren bir sütun yalnızca o asal terimle kapsanabilir; bu terim cevapta mutlaka bulunur (daire içinde).",
+    "<b>Sonuç.</b> Temel asal terimlere, kalan sütunları kapsayan en az sayıda asal terim eklenince en sade çarpımlar toplamı elde edilir."
+  ],
+  qmOnlyDc: "yalnız X",
+  qmOnlyDcTitle: "Yalnızca önemsiz terimleri kapsıyor, gerekli değil",
+  qmRowLabel: (pat, ms) => pat + ", mintermler " + ms,
+  // Quine–McCluskey practice
+  qpNextCol: "Sonraki sütun",
+  qpNextStep: "Sonraki adım",
+  qpShowPairs: "Eşleşmeleri göster",
+  qpHelp: "Yalnızca tek bir bitte farklı olan iki terime tıklayarak onları birleştirin. Vurgulanan sütundaki tüm eşleşmeleri bulun, sonra Sonraki sütun'a basın. Önemsiz terimler gri italik gösterilir.",
+  qpPending: "Son adımdan sonra burada görünür",
+  qpEmptyNext: "Birleşen terimler burada görünür.",
+  qpAdded: pat => `${pat} terimi oluştu.`,
+  qpAlready: "Bu ikisini zaten birleştirdiniz.",
+  qpDash: "Bunlar birleşemez: tireleri farklı yerlerde.",
+  qpBits: "Bunlar birleşemez: birden fazla bitte farklılar.",
+  qpFound: k => `Bu sütunda ${k} eşleşme bulundu.`,
+  qpMissing: (k, t) => `${t} eşleşmeden ${k} tanesi eksik. Eşi bulunmamış terimler kırmızıyla gösterildi.`,
+  qpColDone: k => `${k} eşleşmenin hepsi bulundu. Şimdi yeni sütundaki terimleri birleştirin.`,
+  qpPrimes: "Artık birleşen terim yok. ✓ almayan terimler asal terimlerdir (P1, P2, …). Tablo için Sonraki adım'a basın.",
+  qpShown: "Bu sütundaki tüm eşleşmeler bunlar. Devam etmek için Sonraki sütun'a basın."
+};
+/* ========================================================== */
+
+const GRAY = { 1: [0, 1], 2: [0, 1, 3, 2] };
+const GROUP_COLOURS = 6;
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function tex(target, src, display) {
+  if (window.katex) katex.render(src, target, { throwOnError: false, displayMode: !!display });
+  else target.textContent = src;
+}
+const popcount = x => { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; };
+const nums = s => (s || "").split(",").map(x => x.trim()).filter(Boolean).map(Number);
+
+/* ---------- Boolean algebra helpers ---------- */
+// A cube (product term) is {mask, value}: minterm m is in the cube when (m & mask) === value.
+function cubeOf(set, n) {
+  const full = (1 << n) - 1;
+  let and = full, or = 0;
+  set.forEach(m => { and &= m; or |= m; });
+  const mask = ~(and ^ or) & full;
+  const value = and & mask;
+  const ok = set.size === (1 << (n - popcount(mask)));
+  return ok ? { mask, value } : null;
+}
+function members(c, n) {
+  const out = [];
+  for (let m = 0; m < (1 << n); m++) if ((m & c.mask) === c.value) out.push(m);
+  return out;
+}
+function termTex(c, vars) {
+  const n = vars.length;
+  if (c.mask === 0) return "1";
+  const lits = [];
+  for (let i = 0; i < n; i++) {
+    const bit = 1 << (n - 1 - i);
+    if (c.mask & bit) lits.push((c.value & bit) ? vars[i] : "\\overline{" + vars[i] + "}");
+  }
+  // a thin space next to every complemented literal, so two bars never merge into one
+  return lits.reduce((s, l, i) => s + (i && (l.startsWith("\\") || lits[i - 1].startsWith("\\")) ? "\\," : "") + l, "");
+}
+function isImplicant(c, n, allowed) { return members(c, n).every(m => allowed.has(m)); }
+function isPrime(c, n, allowed) {
+  for (let b = 0; b < n; b++) {
+    const bit = 1 << b;
+    if (c.mask & bit) {
+      const bigger = { mask: c.mask & ~bit, value: c.value & ~bit };
+      if (isImplicant(bigger, n, allowed)) return false;
+    }
+  }
+  return true;
+}
+// All prime implicants that cover at least one 1, and the minimal covers' size.
+function minimalCover(n, on, dc) {
+  const allowed = new Set([...on, ...dc]);
+  const full = (1 << n) - 1;
+  const primes = [];
+  for (let mask = 0; mask <= full; mask++) {
+    for (let value = 0; value <= full; value++) {
+      if (value & ~mask) continue;
+      const c = { mask, value };
+      if (!isImplicant(c, n, allowed) || !isPrime(c, n, allowed)) continue;
+      if (members(c, n).some(m => on.has(m))) primes.push(c);
+    }
+  }
+  const onList = [...on];
+  let best = null;
+  function search(start, chosen, k) {
+    if (chosen.length === k) {
+      const covered = new Set(chosen.flatMap(c => members(c, n)));
+      if (onList.every(m => covered.has(m))) {
+        const lits = chosen.reduce((a, c) => a + popcount(c.mask), 0);
+        if (!best || lits < best.lits) best = { cover: chosen.slice(), lits };
+      }
+      return;
+    }
+    for (let i = start; i < primes.length; i++) {
+      chosen.push(primes[i]);
+      search(i + 1, chosen, k);
+      chosen.pop();
+    }
+  }
+  for (let k = 1; k <= primes.length && !best; k++) search(0, [], k);
+  return best ? { count: best.cover.length, lits: best.lits, cover: best.cover } : { count: 0, lits: 0, cover: [] };
+}
+
+/* ---------- Keyboard: keep keys inside the map ---------- */
+function keepTouch(box) {
+  box.addEventListener("touchstart", e => e.stopPropagation(), { passive: true });
+  box.addEventListener("touchmove", e => e.stopPropagation(), { passive: true });
+}
+function keepKeys(box, onArrow) {
+  keepTouch(box);
+  box.addEventListener("keydown", e => {
+    if (!e.target.closest(".km-cell, button")) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      document.activeElement.blur();
+      e.stopPropagation();
+      return;
+    }
+    if (e.target.closest(".km-cell")) {
+      if (e.key.startsWith("Arrow")) { e.preventDefault(); onArrow(e.target, e.key); }
+      e.stopPropagation();
+    } else if (e.key === " " || e.key === "Enter") {
+      e.stopPropagation();
+    }
+  });
+}
+
+/* ===================== ONE EXERCISE ===================== */
+function setupKmap(host, opts = {}) {
+  const vars = host.dataset.vars.split(",").map(v => v.trim());
+  const n = vars.length;
+  if (n < 2 || n > 4) { host.textContent = TEXT.badVars; return; }
+  const on = new Set(nums(host.dataset.minterms));
+  const dc = new Set(nums(host.dataset.dontcares));
+  const allowed = new Set([...on, ...dc]);
+  const showIdx = host.dataset.indices !== "false";
+  const allowReveal = host.dataset.solution !== "false";
+  const rowBits = Math.floor(n / 2), colBits = n - rowBits;
+  const rowCodes = GRAY[rowBits], colCodes = GRAY[colBits];
+  const R = rowCodes.length, C = colCodes.length;
+  const best = minimalCover(n, on, dc);
+
+  // state
+  const fill = new Map();          // minterm -> "1" | "X"
+  let phase = "fill";              // fill | group | done
+  let selection = new Set();
+  let groups = [];                 // {cube, set:Set, colour}
+  let nextColour = 0;
+
+  host.className = "km";
+  const left = el("div", "km-left");
+  const panel = el("div", "km-panel");
+  const result = el("div", "km-result");
+  host.append(left, panel, result);
+
+  // function statement
+  const func = el("div", "km-func");
+  let fsrc = (opts.name || "F") + "(" + vars.join(",") + ") = \\textstyle\\sum m(" + [...on].sort((a, b) => a - b).join(",") + ")";
+  if (dc.size) fsrc += " + \\textstyle\\sum d(" + [...dc].sort((a, b) => a - b).join(",") + ")";
+  tex(func, fsrc);
+  left.append(func);
+
+  // map grid
+  const map = el("div", "km-map");
+  map.style.gridTemplateColumns = `calc(var(--cell) * 0.9) repeat(${C}, var(--cell))`;
+  const corner = el("div", "km-corner");
+  corner.append(el("span", "rv", vars.slice(0, rowBits).map(uni).join("")), el("span", "cv", vars.slice(rowBits).map(uni).join("")));
+  map.append(corner);
+  colCodes.forEach(c => map.append(el("div", "km-hdr col", c.toString(2).padStart(colBits, "0"))));
+  const cells = [];                // cells[r][c]
+  const cellOf = new Map();        // minterm -> {btn, r, c}
+  rowCodes.forEach((rc, r) => {
+    map.append(el("div", "km-hdr row", rc.toString(2).padStart(rowBits, "0")));
+    cells[r] = [];
+    colCodes.forEach((cc, c) => {
+      const m = (rc << colBits) | cc;
+      const b = el("button", "km-cell");
+      b.type = "button";
+      b.dataset.m = m;
+      if (showIdx) b.append(el("span", "idx", m));
+      b.append(el("span", "val"));
+      b.addEventListener("click", () => onCell(m));
+      map.append(b);
+      cells[r][c] = b;
+      cellOf.set(m, { btn: b, r, c });
+    });
+  });
+  left.append(map);
+
+  // panel
+  const steps = el("ol", "steps");
+  const stepEls = [TEXT.stepFill, TEXT.stepGroup, TEXT.stepDone].map((t, i) => {
+    const li = el("li");
+    li.append(el("span", "n", i + 1), document.createTextNode(t));
+    steps.append(li);
+    return li;
+  });
+  const help = el("p", "km-help");
+  const bar = el("div", "km-bar");
+  const groupList = el("ul", "groups");
+  const msg = el("p", "msg");
+  msg.setAttribute("aria-live", "polite");
+  const links = el("div", "km-links");
+  const resetBtn = el("button", "link", TEXT.reset);
+  if (opts.onNew) {
+    const newBtn = el("button", "btn", TEXT.newProblem);
+    newBtn.addEventListener("click", opts.onNew);
+    links.append(newBtn);
+    links.style.alignItems = "center";
+  }
+  links.append(resetBtn);
+  let solBtn = null;
+  if (allowReveal) { solBtn = el("button", "link", TEXT.showSolution); links.append(solBtn); }
+  panel.append(steps, help, bar, groupList, msg, links);
+
+  const btnCheckMap = el("button", "btn primary", TEXT.checkMap);
+  const btnAdd = el("button", "btn primary", TEXT.addGroup);
+  const btnClear = el("button", "btn", TEXT.clearSel);
+  const btnCheck = el("button", "btn", TEXT.checkGroups);
+
+  // result line
+  result.append(el("span", "lbl", TEXT.resultLabel));
+  const expr = el("span", "expr");
+  result.append(expr);
+
+  /* ----- rendering ----- */
+  function say(text, kind) { msg.textContent = text || ""; msg.className = "msg" + (kind ? " " + kind : ""); }
+
+  function renderPhase() {
+    host.classList.toggle("locked", phase === "done");
+    host.classList.toggle("grouping", phase === "group");
+    stepEls.forEach((li, i) => {
+      const idx = { fill: 0, group: 1, done: 2 }[phase];
+      li.className = i < idx ? "done" : i === idx ? "now" : "";
+    });
+    bar.replaceChildren();
+    if (phase === "fill") {
+      help.textContent = dc.size ? TEXT.helpFillDc : TEXT.helpFill;
+      bar.append(btnCheckMap);
+    } else if (phase === "group") {
+      help.textContent = TEXT.helpGroup;
+      bar.append(btnAdd, btnClear, btnCheck);
+    } else {
+      help.textContent = TEXT.helpDone;
+    }
+    groupList.style.display = phase === "fill" ? "none" : "";
+    renderGroups();
+    renderSelection();
+    btnAdd.disabled = selection.size === 0;
+    btnClear.disabled = selection.size === 0;
+    btnCheck.disabled = groups.length === 0;
+  }
+
+  function renderCells() {
+    cellOf.forEach(({ btn }, m) => {
+      const v = fill.get(m) || "";
+      btn.querySelector(".val").textContent = v;
+      btn.classList.toggle("dc", v === "X");
+      btn.setAttribute("aria-label", TEXT.cellLabel(m, v));
+    });
+  }
+
+  function renderSelection() {
+    cellOf.forEach(({ btn }, m) => btn.classList.toggle("sel", selection.has(m)));
+  }
+
+  function renderGroups() {
+    // list
+    groupList.replaceChildren();
+    if (!groups.length && phase !== "fill") groupList.append(el("p", "groups-empty", TEXT.noGroups));
+    groups.forEach((g, i) => {
+      const li = el("li");
+      li.style.setProperty("--gc", `var(--g${g.colour})`);
+      const t = el("span", "t");
+      tex(t, termTex(g.cube, vars));
+      const cs = el("span", "cells", "m(" + [...g.set].sort((a, b) => a - b).join(",") + ")");
+      li.append(el("span", null, (i + 1) + "."), t, cs);
+      if (phase !== "done") {
+        const x = el("button", null, "×");
+        x.title = TEXT.removeGroup(i + 1);
+        x.addEventListener("click", () => { groups.splice(i, 1); clearMarks(); say(""); renderPhase(); });
+        li.append(x);
+      }
+      groupList.append(li);
+    });
+    // loops on the map
+    map.querySelectorAll(".ring").forEach(r => r.remove());
+    groups.forEach((g, gi) => {
+      const rowsUsed = new Set(), colsUsed = new Set();
+      g.set.forEach(m => { const p = cellOf.get(m); rowsUsed.add(p.r); colsUsed.add(p.c); });
+      const fullRows = rowsUsed.size === R, fullCols = colsUsed.size === C;
+      const inset = 3 + (gi % 4) * 4;            // nested loops for overlapping groups
+      g.set.forEach(m => {
+        const { btn, r, c } = cellOf.get(m);
+        const has = (rr, cc) => g.set.has(+cells[rr][cc].dataset.m);
+        // a side is open when the group continues there (inside the grid, or wrapping past the edge)
+        const openL = c > 0 ? has(r, c - 1) : (!fullCols && has(r, C - 1));
+        const openR = c < C - 1 ? has(r, c + 1) : (!fullCols && has(r, 0));
+        const openT = r > 0 ? has(r - 1, c) : (!fullRows && has(R - 1, c));
+        const openB = r < R - 1 ? has(r + 1, c) : (!fullRows && has(0, c));
+        const ring = el("span", "ring");
+        ring.style.setProperty("--gc", `var(--g${g.colour})`);
+        const w = "3px";
+        ring.style.top = openT ? "-1px" : inset + "px";
+        ring.style.bottom = openB ? "-1px" : inset + "px";
+        ring.style.left = openL ? "-1px" : inset + "px";
+        ring.style.right = openR ? "-1px" : inset + "px";
+        ring.style.borderTopWidth = openT ? "0" : w;
+        ring.style.borderBottomWidth = openB ? "0" : w;
+        ring.style.borderLeftWidth = openL ? "0" : w;
+        ring.style.borderRightWidth = openR ? "0" : w;
+        const rad = "0.9em";
+        ring.style.borderTopLeftRadius = !openT && !openL ? rad : "0";
+        ring.style.borderTopRightRadius = !openT && !openR ? rad : "0";
+        ring.style.borderBottomLeftRadius = !openB && !openL ? rad : "0";
+        ring.style.borderBottomRightRadius = !openB && !openR ? rad : "0";
+        btn.append(ring);
+      });
+    });
+  }
+
+  function renderResult(cover) {
+    if (cover) {
+      result.classList.add("solved");
+      const src = (opts.name || "F") + " = " + (cover.length ? cover.map(c => termTex(c, vars)).join(" + ") : "0");
+      tex(expr, src);
+    } else {
+      result.classList.remove("solved");
+      expr.textContent = TEXT.resultPending;
+    }
+  }
+
+  function clearMarks() {
+    cellOf.forEach(({ btn }) => btn.classList.remove("wrong", "miss"));
+  }
+
+  /* ----- actions ----- */
+  function onCell(m) {
+    if (phase === "fill") {
+      const v = fill.get(m) || "";
+      const next = v === "" ? "1" : (v === "1" && dc.size ? "X" : "");
+      if (next) fill.set(m, next); else fill.delete(m);
+      cellOf.get(m).btn.classList.remove("wrong");
+      say("");
+      renderCells();
+    } else if (phase === "group") {
+      if (selection.has(m)) selection.delete(m); else selection.add(m);
+      say("");
+      renderPhase();
+    }
+  }
+
+  btnCheckMap.addEventListener("click", () => {
+    clearMarks();
+    let wrong = 0;
+    cellOf.forEach(({ btn }, m) => {
+      const want = on.has(m) ? "1" : dc.has(m) ? "X" : "";
+      if ((fill.get(m) || "") !== want) { btn.classList.add("wrong"); wrong++; }
+    });
+    if (wrong) { say(TEXT.mapWrong(wrong), "err"); return; }
+    if (on.size === 0) {
+      phase = "done";
+      say(TEXT.zero, "ok");
+      renderResult([]);
+    } else {
+      phase = "group";
+      say(TEXT.mapOk, "ok");
+    }
+    renderPhase();
+  });
+
+  btnClear.addEventListener("click", () => { selection.clear(); say(""); renderPhase(); });
+
+  btnAdd.addEventListener("click", () => {
+    if (!selection.size) { say(TEXT.selEmpty, "err"); return; }
+    if ([...selection].some(m => !allowed.has(m))) { say(TEXT.selHasZero, "err"); return; }
+    const cube = cubeOf(selection, n);
+    if (!cube) { say(TEXT.selShape, "err"); return; }
+    if (![...selection].some(m => on.has(m))) { say(TEXT.selOnlyDc, "err"); return; }
+    if (groups.some(g => g.cube.mask === cube.mask && g.cube.value === cube.value)) { say(TEXT.selDuplicate, "err"); return; }
+    groups.push({ cube, set: new Set(selection), colour: nextColour++ % GROUP_COLOURS });
+    selection.clear();
+    clearMarks();
+    say("");
+    renderPhase();
+  });
+
+  btnCheck.addEventListener("click", () => {
+    clearMarks();
+    const problems = [];
+    const notPrime = groups.map((g, i) => isPrime(g.cube, n, allowed) ? null : i + 1).filter(Boolean);
+    if (notPrime.length) problems.push(TEXT.notPrime(notPrime));
+
+    const covered = new Set(groups.flatMap(g => [...g.set]));
+    const missing = [...on].filter(m => !covered.has(m));
+    missing.forEach(m => cellOf.get(m).btn.classList.add("miss"));
+    if (missing.length) problems.push(TEXT.uncovered(missing.length));
+
+    const redundant = groups.map((g, i) => {
+      const others = new Set(groups.filter((_, j) => j !== i).flatMap(h => [...h.set]));
+      return [...g.set].filter(m => on.has(m)).every(m => others.has(m)) ? i + 1 : null;
+    }).filter(Boolean);
+    if (!missing.length && redundant.length) problems.push(TEXT.redundant(redundant));
+
+    if (problems.length) { say(problems.join(" "), "err"); return; }
+
+    const lits = groups.reduce((a, g) => a + popcount(g.cube.mask), 0);
+    if (groups.length > best.count || lits > best.lits) {
+      say(TEXT.notMinimal(best.count, best.lits), "info");
+      return;
+    }
+    phase = "done";
+    say(TEXT.solved, "ok");
+    renderResult(groups.map(g => g.cube));
+    renderPhase();
+    if (opts.onSolved) opts.onSolved();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    fill.clear(); selection.clear(); groups = []; nextColour = 0; phase = "fill";
+    clearMarks(); say(""); renderCells(); renderResult(null); renderPhase();
+  });
+
+  if (solBtn) solBtn.addEventListener("click", () => {
+    fill.clear();
+    on.forEach(m => fill.set(m, "1"));
+    dc.forEach(m => fill.set(m, "X"));
+    selection.clear(); nextColour = 0;
+    groups = best.cover.map(cube => ({ cube, set: new Set(members(cube, n)), colour: nextColour++ % GROUP_COLOURS }));
+    phase = "done";
+    clearMarks();
+    say(on.size ? TEXT.shown : TEXT.zero, "info");
+    renderCells();
+    renderResult(best.cover);
+    renderPhase();
+    if (opts.onSolved) opts.onSolved();
+  });
+
+  // arrow keys move between cells
+  keepKeys(host, (btn, key) => {
+    const { r, c } = cellOf.get(+btn.dataset.m);
+    const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[key];
+    cells[(r + d[0] + R) % R][(c + d[1] + C) % C].focus();
+  });
+
+  renderCells();
+  renderResult(null);
+  renderPhase();
+}
+
+/* ===================== RANDOM PROBLEMS ===================== */
+// Picks a function with 2–4 groups in its minimal cover; about half the time it has don't cares.
+function randomProblem(varCounts, limits = {}) {
+  const names = ["A", "B", "C", "D"];
+  for (let tries = 0; tries < 500; tries++) {
+    const n = varCounts[Math.floor(Math.random() * varCounts.length)];
+    const N = 1 << n;
+    const useDc = Math.random() < 0.5;
+    const on = new Set(), dc = new Set();
+    for (let m = 0; m < N; m++) {
+      const r = Math.random();
+      if (r < 0.42) on.add(m);
+      else if (useDc && r < 0.42 + 0.14) dc.add(m);
+    }
+    if (on.size < 3 || on.size + dc.size > N - 2) continue;
+    if (useDc && dc.size === 0) continue;
+    const best = minimalCover(n, on, dc);
+    if (best.count < 2 || best.count > 4) continue;
+    if (limits.maxTerms && on.size + dc.size > limits.maxTerms) continue;
+    if (limits.needPairs && qmTabulate(n, on, dc).columns.length < 2) continue;
+    return { vars: names.slice(0, n), on, dc };
+  }
+  return { vars: ["A", "B", "C"], on: new Set([0, 2, 4, 5, 6]), dc: new Set() };
+}
+
+let currentRandom = null;                       // shared with the Quine–McCluskey slide
+const randomListeners = [];
+
+function setupRandom(host) {
+  const counts = nums(host.dataset.random || "3,4").filter(k => k >= 2 && k <= 4);
+  function fresh() {
+    const pr = randomProblem(counts.length ? counts : [3, 4]);
+    currentRandom = pr;
+    const box = el("div", "kmap");
+    box.dataset.vars = pr.vars.join(",");
+    box.dataset.minterms = [...pr.on].join(",");
+    if (pr.dc.size) box.dataset.dontcares = [...pr.dc].join(",");
+    if (host.dataset.indices) box.dataset.indices = host.dataset.indices;
+    if (host.dataset.solution) box.dataset.solution = host.dataset.solution;
+    host.replaceChildren(box);
+    setupKmap(box, { onNew: fresh });
+    randomListeners.forEach(f => f(pr));
+  }
+  host.style.display = "contents";
+  fresh();
+}
+
+/* ===================== QUINE–McCLUSKEY ===================== */
+function patternOf(c, n) {
+  let s = "";
+  for (let i = n - 1; i >= 0; i--) {
+    const bit = 1 << i;
+    s += (c.mask & bit) ? ((c.value & bit) ? "1" : "0") : "-";
+  }
+  return s;
+}
+
+function qmTabulate(n, on, dc) {
+  const full = (1 << n) - 1;
+  const byOnes = (a, b) => popcount(a.value) - popcount(b.value) || a.ms[0] - b.ms[0];
+  let col = [...new Set([...on, ...dc])].sort((a, b) => a - b)
+    .map(m => ({ mask: full, value: m, ms: [m], used: false }));
+  col.sort(byOnes);
+  const columns = [col];
+  while (true) {
+    const next = [], seen = new Map();
+    for (let i = 0; i < col.length; i++) {
+      for (let j = i + 1; j < col.length; j++) {
+        const a = col[i], b = col[j];
+        if (a.mask !== b.mask) continue;
+        const d = a.value ^ b.value;
+        if (popcount(d) !== 1 || Math.abs(popcount(a.value) - popcount(b.value)) !== 1) continue;
+        a.used = b.used = true;
+        const c = { mask: a.mask & ~d, value: a.value & ~d };
+        const key = c.mask + ":" + c.value;
+        if (!seen.has(key)) {
+          c.ms = [...new Set([...a.ms, ...b.ms])].sort((x, y) => x - y);
+          c.used = false;
+          seen.set(key, c);
+          next.push(c);
+        }
+      }
+    }
+    if (!next.length) break;
+    next.sort(byOnes);
+    columns.push(next);
+    col = next;
+  }
+  const primes = columns.flat().filter(c => !c.used);
+  // only primes that cover a 1 get a label; primes made only of don't cares are left out of the chart
+  let k = 0;
+  primes.forEach(p => { p.useful = p.ms.some(m => on.has(m)); p.label = p.useful ? "P" + (++k) : TEXT.qmOnlyDc; });
+  return { columns, primes };
+}
+
+function setupQM(host) {
+  const fixed = host.dataset.minterms != null;
+  host.className = "qm";
+  keepTouch(host);
+
+  function build(vars, on, dc) {
+    const n = vars.length;
+    const { columns, primes } = qmTabulate(n, on, dc);
+    const best = minimalCover(n, on, dc);
+    const onList = [...on].sort((a, b) => a - b);
+    const chartRows = primes.filter(p => p.useful);
+    const essential = new Set();
+    const essCell = new Set();
+    onList.forEach(m => {
+      const rows = chartRows.filter(p => p.ms.includes(m));
+      if (rows.length === 1) { essential.add(rows[0]); essCell.add(rows[0].label + ":" + m); }
+    });
+    const chosen = new Set(chartRows.filter(p => best.cover.some(c => c.mask === p.mask && c.value === p.value)));
+
+    // steps: 0 start, 1 first column, 2.. one per further column, then primes, chart, essentials, result
+    const C = columns.length;
+    const S_PRIMES = C + 1, S_CHART = C + 2, S_ESS = C + 3, S_RESULT = C + 4;
+    let step = 0;
+
+    host.replaceChildren();
+    const top = el("div", "qm-top");
+    const func = el("div", "km-func");
+    let fsrc = "F(" + vars.join(",") + ") = \\textstyle\\sum m(" + onList.join(",") + ")";
+    if (dc.size) fsrc += " + \\textstyle\\sum d(" + [...dc].sort((a, b) => a - b).join(",") + ")";
+    tex(func, fsrc);
+    const bar = el("div", "km-bar");
+    const bNext = el("button", "btn primary", TEXT.qmNext);
+    const bAll = el("button", "btn", TEXT.qmAll);
+    const bRestart = el("button", "link", TEXT.qmRestart);
+    bar.append(bNext, bAll, bRestart);
+    top.append(func, bar);
+    const say = el("p", "qm-say");
+    say.setAttribute("aria-live", "polite");
+    const stage = el("div", "qm-stage");
+    const result = el("div", "km-result");
+    result.append(el("span", "lbl", TEXT.resultLabel));
+    const expr = el("span", "expr");
+    result.append(expr);
+    host.append(top, say, stage, result);
+
+    // implicant columns
+    columns.forEach((col, ci) => {
+      const box = el("div", "qm-col");
+      box.dataset.step = ci + 1;
+      box.append(el("h3", null, TEXT.qmCol[ci] || TEXT.qmColN(1 << ci)));
+      const t = el("table");
+      const hr = el("tr");
+      TEXT.qmHead.forEach(h => hr.append(el("th", null, h)));
+      t.append(hr);
+      let lastOnes = -1;
+      col.forEach(c => {
+        const tr = el("tr");
+        const ones = popcount(c.value);
+        if (ones !== lastOnes && lastOnes !== -1) tr.className = "gstart";
+        const onesTd = el("td", "ones", ones !== lastOnes ? ones : "");
+        lastOnes = ones;
+        const msTd = el("td");
+        c.ms.forEach((m, k) => {
+          if (k) msTd.append(document.createTextNode(","));
+          msTd.append(el("span", dc.has(m) ? "dcm" : null, m));
+        });
+        const mark = el("td", "mark");
+        if (c.used) { mark.textContent = "✓"; mark.classList.add("used"); mark.dataset.step = ci + 2; }
+        else {
+          mark.textContent = c.label; mark.classList.add("prime"); mark.dataset.step = S_PRIMES;
+          if (!c.useful) { tr.classList.add("dconly"); mark.classList.remove("prime"); mark.title = TEXT.qmOnlyDcTitle; }
+        }
+        tr.append(onesTd, msTd, el("td", null, patternOf(c, n)), mark);
+        t.append(tr);
+      });
+      box.append(t);
+      stage.append(box);
+    });
+
+    // prime implicant chart
+    const chart = el("div", "qm-chart");
+    chart.dataset.step = S_CHART;
+    chart.append(el("h3", null, TEXT.qmChart));
+    const ct = el("table");
+    const hr = el("tr");
+    hr.append(el("th"), el("th"));
+    onList.forEach(m => hr.append(el("th", "mt", m)));
+    ct.append(hr);
+    const rowEls = new Map();
+    chartRows.forEach(p => {
+      const tr = el("tr");
+      const term = el("td", "term");
+      tex(term, termTex(p, vars));
+      tr.append(el("td", null, p.label), term);
+      onList.forEach(m => {
+        const td = el("td", "x", p.ms.includes(m) ? "X" : "");
+        if (essCell.has(p.label + ":" + m)) td.dataset.ess = "1";
+        tr.append(td);
+      });
+      ct.append(tr);
+      rowEls.set(p, tr);
+    });
+    chart.append(ct);
+    stage.append(chart);
+
+    function render() {
+      host.querySelectorAll("[data-step]").forEach(e => {
+        const later = +e.dataset.step > step;
+        e.classList.toggle("later", later);
+      });
+      const idx = step === 0 ? 0 : step === 1 ? 1 : step <= C ? 2 : step === S_PRIMES ? 3
+                : step === S_CHART ? 4 : step === S_ESS ? 5 : 6;
+      say.innerHTML = TEXT.qmSay[idx];
+      chartRows.forEach(p => {
+        const tr = rowEls.get(p);
+        tr.classList.toggle("essential", step >= S_ESS && essential.has(p));
+        tr.classList.toggle("chosen", step >= S_RESULT && chosen.has(p));
+        tr.querySelectorAll("td[data-ess]").forEach(td => td.classList.toggle("ess", step >= S_ESS));
+      });
+      if (step >= S_RESULT) {
+        result.classList.add("solved");
+        const terms = chartRows.filter(p => chosen.has(p));
+        tex(expr, "F = " + (terms.length ? terms.map(p => termTex(p, vars)).join(" + ") : "0"));
+      } else {
+        result.classList.remove("solved");
+        expr.textContent = TEXT.resultPending;
+      }
+      bNext.disabled = bAll.disabled = step >= S_RESULT;
+      // keep the newest part in view
+      const newest = [...host.querySelectorAll("[data-step]")].filter(e => +e.dataset.step === step && e.matches(".qm-col, .qm-chart"))[0];
+      if (newest) newest.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+    bNext.addEventListener("click", () => { step++; render(); });
+    bAll.addEventListener("click", () => { step = S_RESULT; render(); });
+    bRestart.addEventListener("click", () => { step = 0; render(); });
+    render();
+  }
+
+  if (fixed) {
+    build(host.dataset.vars.split(",").map(v => v.trim()), new Set(nums(host.dataset.minterms)), new Set(nums(host.dataset.dontcares)));
+  } else {
+    // follows the random practice slide
+    const show = pr => build(pr.vars, pr.on, pr.dc);
+    randomListeners.push(show);
+    if (currentRandom) show(currentRandom);
+  }
+}
+
+/* ===================== QUINE–McCLUSKEY PRACTICE ===================== */
+function combineTerms(a, b) {
+  if (a.mask !== b.mask) return { why: "dash" };
+  const d = a.value ^ b.value;
+  if (popcount(d) !== 1) return { why: "bits" };
+  return { term: { mask: a.mask & ~d, value: a.value & ~d, ms: [...new Set([...a.ms, ...b.ms])].sort((x, y) => x - y) } };
+}
+const byOnes = (a, b) => popcount(a.value) - popcount(b.value) || a.ms[0] - b.ms[0];
+const termKey = t => t.mask + ":" + t.value;
+
+function setupQMPractice(host) {
+  const counts = nums(host.dataset.random || "3,4").filter(k => k >= 2 && k <= 4);
+  const maxTerms = +(host.dataset.maxTerms || 10);
+  const allowShow = host.dataset.solution !== "false";
+  host.classList.add("qm");
+  keepTouch(host);
+  // Enter/Space pick a row; Esc leaves; keys never reach reveal.js while inside
+  host.addEventListener("keydown", e => {
+    const row = e.target.closest("tr.pickable");
+    if (e.key === "Escape") { document.activeElement.blur(); e.stopPropagation(); return; }
+    if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); row.click(); }
+    if (row || e.target.closest("button")) e.stopPropagation();
+  });
+
+  let S;   // state of the current problem
+
+  function fresh() {
+    const pr = randomProblem(counts.length ? counts : [3, 4], { maxTerms, needPairs: true });
+    const n = pr.vars.length, full = (1 << n) - 1;
+    const first = [...new Set([...pr.on, ...pr.dc])].map(m => ({ mask: full, value: m, ms: [m] })).sort(byOnes);
+    S = {
+      vars: pr.vars, n, on: pr.on, dc: pr.dc,
+      cols: [first],          // completed columns + the active one
+      used: [],               // per completed column: Set of row indices that were combined
+      found: new Map(),       // active column: "i,j" -> combined term
+      pick: null,             // selected row index in the active column
+      missing: new Set(),
+      phase: "pair",          // pair | primes | chart | ess | result
+      primes: null,
+      best: minimalCover(n, pr.on, pr.dc)
+    };
+    buildShell();
+    say(TEXT.qpHelp, "info");
+    render();
+  }
+
+  // ----- static parts -----
+  let func, bMain, bNew, bReset, bShow, msgEl, stage, result, expr;
+  function buildShell() {
+    host.replaceChildren();
+    const top = el("div", "qm-top");
+    func = el("div", "km-func");
+    let fsrc = "F(" + S.vars.join(",") + ") = \\textstyle\\sum m(" + [...S.on].sort((a, b) => a - b).join(",") + ")";
+    if (S.dc.size) fsrc += " + \\textstyle\\sum d(" + [...S.dc].sort((a, b) => a - b).join(",") + ")";
+    tex(func, fsrc);
+    const bar = el("div", "km-bar");
+    bMain = el("button", "btn primary", TEXT.qpNextCol);
+    bNew = el("button", "btn", TEXT.newProblem);
+    bar.append(bMain, bNew);
+    const links = el("div", "km-links");
+    bReset = el("button", "link", TEXT.reset);
+    links.append(bReset);
+    if (allowShow) { bShow = el("button", "link", TEXT.qpShowPairs); links.append(bShow); }
+    top.append(func, bar, links);
+    msgEl = el("p", "msg");
+    msgEl.setAttribute("aria-live", "polite");
+    stage = el("div", "qm-stage");
+    result = el("div", "km-result");
+    result.append(el("span", "lbl", TEXT.resultLabel));
+    expr = el("span", "expr", TEXT.qpPending);
+    result.append(expr);
+    host.append(top, msgEl, stage, result);
+
+    bMain.addEventListener("click", onMain);
+    bNew.addEventListener("click", fresh);
+    bReset.addEventListener("click", () => {
+      S.cols = [S.cols[0]]; S.used = []; S.found = new Map(); S.pick = null; S.missing = new Set();
+      S.phase = "pair"; S.primes = null;
+      say(TEXT.qpHelp, "info"); render();
+    });
+    if (bShow) bShow.addEventListener("click", () => {
+      if (S.phase !== "pair") return;
+      validPairs().forEach(p => S.found.set(p.key, p.term));
+      S.pick = null; S.missing = new Set();
+      say(TEXT.qpShown, "info"); render();
+    });
+  }
+
+  function say(text, kind) { msgEl.textContent = text || ""; msgEl.className = "msg" + (kind ? " " + kind : ""); }
+
+  const active = () => S.cols[S.cols.length - 1];
+  function validPairs() {
+    const col = active(), out = [];
+    for (let i = 0; i < col.length; i++)
+      for (let j = i + 1; j < col.length; j++) {
+        const r = combineTerms(col[i], col[j]);
+        if (r.term) out.push({ i, j, key: i + "," + j, term: r.term });
+      }
+    return out;
+  }
+  function nextColumn() {
+    const seen = new Map();
+    S.found.forEach(t => { if (!seen.has(termKey(t))) seen.set(termKey(t), t); });
+    return [...seen.values()].sort(byOnes);
+  }
+
+  // ----- student picks a row in the active column -----
+  function onPick(i) {
+    if (S.phase !== "pair") return;
+    S.missing = new Set();
+    if (S.pick === null) { S.pick = i; say(""); render(i); return; }
+    if (S.pick === i) { S.pick = null; say(""); render(i); return; }
+    const a = Math.min(S.pick, i), b = Math.max(S.pick, i);
+    const key = a + "," + b;
+    const col = active();
+    const r = combineTerms(col[a], col[b]);
+    S.pick = null;
+    if (!r.term) say(r.why === "dash" ? TEXT.qpDash : TEXT.qpBits, "err");
+    else if (S.found.has(key)) say(TEXT.qpAlready, "info");
+    else {
+      S.found.set(key, r.term);
+      say(TEXT.qpAdded(patternOf(r.term, S.n)) + " " + TEXT.qpFound(S.found.size), "ok");
+    }
+    render(i);
+  }
+
+  // ----- Next column / Next step -----
+  function onMain() {
+    if (S.phase === "pair") {
+      const all = validPairs();
+      const missing = all.filter(p => !S.found.has(p.key));
+      if (missing.length) {
+        S.missing = new Set(missing.flatMap(p => [p.i, p.j]));
+        S.pick = null;
+        say(TEXT.qpMissing(missing.length, all.length), "err");
+        render();
+        return;
+      }
+      const usedRows = new Set(all.flatMap(p => [p.i, p.j]));
+      S.used.push(usedRows);
+      const next = nextColumn();
+      S.found = new Map(); S.pick = null; S.missing = new Set();
+      if (next.length) {
+        S.cols.push(next);
+        say(TEXT.qpColDone(all.length), "ok");
+      } else {
+        // last column: nothing combined, every row is prime
+        S.phase = "primes";
+        labelPrimes();
+        say(TEXT.qpPrimes, "info");
+      }
+      render();
+      return;
+    }
+    S.phase = { primes: "chart", chart: "ess", ess: "result" }[S.phase] || S.phase;
+    say(S.phase === "chart" ? strip(TEXT.qmSay[4]) : S.phase === "ess" ? strip(TEXT.qmSay[5]) : strip(TEXT.qmSay[6]), "info");
+    render();
+  }
+  const strip = h => h.replace(/<[^>]+>/g, "");
+
+  function labelPrimes() {
+    const primes = [];
+    S.cols.forEach((col, ci) => col.forEach((t, ri) => { if (!(S.used[ci] && S.used[ci].has(ri))) primes.push(t); }));
+    let k = 0;
+    primes.forEach(p => { p.useful = p.ms.some(m => S.on.has(m)); p.label = p.useful ? "P" + (++k) : TEXT.qmOnlyDc; });
+    S.primes = primes;
+  }
+
+  // ----- drawing -----
+  function colTable(col, ci, mode) {
+    // mode: "done" | "active" | "building"
+    const box = el("div", "qm-col" + (mode === "active" ? " active" : mode === "building" ? " building" : ""));
+    box.append(el("h3", null, TEXT.qmCol[ci] || TEXT.qmColN(1 << ci)));
+    const t = el("table");
+    const hr = el("tr");
+    TEXT.qmHead.forEach(h => hr.append(el("th", null, h)));
+    t.append(hr);
+    if (!col.length) {
+      const tr = el("tr", "empty");
+      const td = el("td", null, TEXT.qpEmptyNext);
+      td.colSpan = 4;
+      tr.append(td);
+      t.append(tr);
+    }
+    const pairedNow = new Set();
+    if (mode === "active") S.found.forEach((_, key) => key.split(",").forEach(x => pairedNow.add(+x)));
+    let last = -1;
+    col.forEach((c, ri) => {
+      const tr = el("tr");
+      const ones = popcount(c.value);
+      if (ones !== last && last !== -1) tr.classList.add("gstart");
+      const onesTd = el("td", "ones", ones !== last ? ones : "");
+      last = ones;
+      const msTd = el("td");
+      c.ms.forEach((m, k) => {
+        if (k) msTd.append(document.createTextNode(","));
+        msTd.append(el("span", S.dc.has(m) ? "dcm" : null, m));
+      });
+      const mark = el("td", "mark");
+      if (mode === "done") {
+        if (S.used[ci] && S.used[ci].has(ri)) { mark.textContent = "✓"; mark.classList.add("used"); }
+        else if (S.primes) { mark.textContent = c.label; if (c.useful) mark.classList.add("prime"); else tr.classList.add("dconly"); }
+      } else if (mode === "active" && pairedNow.has(ri)) {
+        mark.textContent = "✓"; mark.classList.add("used");
+      }
+      tr.append(onesTd, msTd, el("td", null, patternOf(c, S.n)), mark);
+      if (mode === "active") {
+        tr.classList.add("pickable");
+        tr.tabIndex = 0;
+        tr.dataset.ri = ri;
+        tr.setAttribute("aria-label", TEXT.qmRowLabel(patternOf(c, S.n), c.ms.join(" ")));
+        if (S.pick === ri) tr.classList.add("picked");
+        if (S.missing.has(ri)) tr.classList.add("missing");
+        tr.addEventListener("click", () => onPick(ri));
+      }
+      t.append(tr);
+    });
+    box.append(t);
+    if (mode === "active" && S.found.size) box.append(el("p", "qm-found", TEXT.qpFound(S.found.size)));
+    return box;
+  }
+
+  function chartBox() {
+    const onList = [...S.on].sort((a, b) => a - b);
+    const rows = S.primes.filter(p => p.useful);
+    const essential = new Set(), essCell = new Set();
+    onList.forEach(m => {
+      const r = rows.filter(p => p.ms.includes(m));
+      if (r.length === 1) { essential.add(r[0]); essCell.add(r[0].label + ":" + m); }
+    });
+    const chosen = rows.filter(p => S.best.cover.some(c => c.mask === p.mask && c.value === p.value));
+    const box = el("div", "qm-chart");
+    box.append(el("h3", null, TEXT.qmChart));
+    const t = el("table");
+    const hr = el("tr");
+    hr.append(el("th"), el("th"));
+    onList.forEach(m => hr.append(el("th", "mt", m)));
+    t.append(hr);
+    rows.forEach(p => {
+      const tr = el("tr");
+      if ((S.phase === "ess" || S.phase === "result") && essential.has(p)) tr.classList.add("essential");
+      if (S.phase === "result" && chosen.includes(p)) tr.classList.add("chosen");
+      const term = el("td", "term");
+      tex(term, termTex(p, S.vars));
+      tr.append(el("td", null, p.label), term);
+      onList.forEach(m => {
+        const td = el("td", "x", p.ms.includes(m) ? "X" : "");
+        if ((S.phase === "ess" || S.phase === "result") && essCell.has(p.label + ":" + m)) td.classList.add("ess");
+        tr.append(td);
+      });
+      t.append(tr);
+    });
+    box.append(t);
+    return { box, chosen };
+  }
+
+  function render(focusRow) {
+    const sl = stage.scrollLeft;
+    stage.replaceChildren();
+    const pairing = S.phase === "pair";
+    S.cols.forEach((col, ci) => {
+      const isActive = pairing && ci === S.cols.length - 1;
+      stage.append(colTable(col, ci, isActive ? "active" : "done"));
+    });
+    if (pairing) stage.append(colTable(nextColumn(), S.cols.length, "building"));
+    let chosen = null;
+    if (["chart", "ess", "result"].includes(S.phase)) {
+      const c = chartBox();
+      stage.append(c.box);
+      chosen = c.chosen;
+    }
+    stage.scrollLeft = sl;
+    const act = stage.querySelector(".qm-col.active, .qm-chart");
+    if (act) act.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (focusRow != null) {
+      const row = stage.querySelector(`.qm-col.active tr[data-ri="${focusRow}"]`);
+      if (row) row.focus({ preventScroll: true });
+    }
+    bMain.textContent = pairing ? TEXT.qpNextCol : TEXT.qpNextStep;
+    bMain.disabled = S.phase === "result";
+    if (bShow) bShow.disabled = !pairing;
+    if (S.phase === "result") {
+      result.classList.add("solved");
+      tex(expr, "F = " + (chosen.length ? chosen.map(p => termTex(p, S.vars)).join(" + ") : "0"));
+    } else {
+      result.classList.remove("solved");
+      expr.textContent = TEXT.qpPending;
+    }
+  }
+
+  fresh();
+}
+
+/* ===================== DEVRE ÇİZİMİ ===================== */
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.append(e);
+  return e;
+}
+// "C_4" → C with subscript 4; "B'" kept as is
+function svText(parent, x, y, s, anchor, cls) {
+  const t = sv("text", { x, y, "text-anchor": anchor || "middle", class: cls || "lb" }, parent);
+  String(s).split(/(_\{[^}]*\}|_\w+)/).forEach(part => {
+    if (!part) return;
+    if (part.startsWith("_")) {
+      const sub = sv("tspan", { "baseline-shift": "sub", "font-size": "75%" }, t);
+      sub.textContent = part.replace(/^_\{?|\}$/g, "");
+    } else {
+      const ts = sv("tspan", {}, t);
+      ts.textContent = part;
+    }
+  });
+  return t;
+}
+const OR_LIKE = new Set(["or", "nor", "xor", "xnor"]);
+
+function drawGate(g, q, pins) {
+  const n = q.n || (q.t === "not" ? 1 : 2);
+  const h = q.h || (n === 1 ? 24 : n === 2 ? 40 : 48);
+  const { x, y, t } = q;
+  let d, outX;
+  if (t === "and" || t === "nand") {
+    d = `M${x} ${y}H${x + 25}A${h / 2} ${h / 2} 0 0 1 ${x + 25} ${y + h}H${x}Z`;
+    outX = x + 25 + h / 2;
+  } else if (OR_LIKE.has(t)) {
+    d = `M${x} ${y}Q${x + 12} ${y + h / 2} ${x} ${y + h}Q${x + 35} ${y + h} ${x + 50} ${y + h / 2}Q${x + 35} ${y} ${x} ${y}Z`;
+    outX = x + 50;
+  } else {
+    d = `M${x} ${y}L${x + 28} ${y + h / 2}L${x} ${y + h}Z`;
+    outX = x + 28;
+  }
+  sv("path", { d, class: "gate" }, g);
+  if (t === "xor" || t === "xnor") sv("path", { d: `M${x - 7} ${y}Q${x + 5} ${y + h / 2} ${x - 7} ${y + h}`, class: "w" }, g);
+  if (["nand", "nor", "not", "xnor"].includes(t)) {
+    sv("circle", { cx: outX + 4, cy: y + h / 2, r: 4, class: "gate" }, g);
+    outX += 8;
+  }
+  for (let k = 0; k < n; k++) {
+    const tt = (2 * k + 1) / (2 * n);
+    const py = y + h * tt;
+    let px = x;
+    if (OR_LIKE.has(t)) px = x + 24 * tt * (1 - tt) - (t === "xor" || t === "xnor" ? 7 : 0);
+    pins[q.id + ".i" + k] = { x: px, y: py, o: "h" };
+  }
+  pins[q.id + ".o"] = { x: outX, y: y + h / 2, o: "h" };
+  if (q.label) svText(g, outX + 4, y + h / 2 - 7, q.label, "start", "lb small");
+}
+
+function drawBlock(g, b, pins) {
+  sv("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 4, class: "gate" }, g);
+  const lines = b.label.split("\n");
+  lines.forEach((ln, i) => svText(g, b.x + b.w / 2, b.y + b.h / 2 + (i - (lines.length - 1) / 2) * 15 + 4, ln, "middle", b.small ? "lb small" : "lb"));
+  (b.pins || []).forEach(p => {
+    let x, y, o, lx, ly, a;
+    if (p.side === "top") { x = b.x + b.w * p.at; y = b.y; o = "v"; lx = x; ly = y + 12; a = "middle"; }
+    else if (p.side === "bottom") { x = b.x + b.w * p.at; y = b.y + b.h; o = "v"; lx = x; ly = y - 5; a = "middle"; }
+    else if (p.side === "left") { x = b.x; y = b.y + b.h * p.at; o = "h"; lx = x + 4; ly = y + 4; a = "start"; }
+    else { x = b.x + b.w; y = b.y + b.h * p.at; o = "h"; lx = x - 4; ly = y + 4; a = "end"; }
+    pins[b.id + "." + p.n] = { x, y, o };
+    if (p.lbl) svText(g, lx, ly, p.lbl, a, "lb tiny");
+  });
+}
+
+function drawCircuit(svg, given) {
+  const spec = given || CIRCUITS[svg.dataset.devre];
+  if (!spec) return;
+  svg.setAttribute("viewBox", `0 0 ${spec.w} ${spec.h}`);
+  svg.style.maxWidth = Math.round(spec.w * 1.5) + "px";
+  const g = sv("g", {}, svg);
+  const pins = {};
+  (spec.buses || []).forEach(b => {
+    sv("line", { x1: b.x, y1: b.y1, x2: b.x, y2: b.y2, class: "w" }, g);
+    svText(g, b.lx ?? b.x, b.ly ?? b.y1 - 6, b.label || b.name, b.la || "middle");
+    pins["bus:" + b.name] = { x: b.x, bus: true };
+  });
+  (spec.gates || []).forEach(q => drawGate(g, q, pins));
+  (spec.blocks || []).forEach(b => drawBlock(g, b, pins));
+  (spec.xors || []).forEach(o => {
+    const r = o.r || 9;
+    sv("circle", { cx: o.x, cy: o.y, r, class: "gate" }, g);
+    sv("path", { d: `M${o.x - r} ${o.y}H${o.x + r}M${o.x} ${o.y - r}V${o.y + r}`, class: "w" }, g);
+    pins[o.id + ".t"] = { x: o.x, y: o.y - r, o: "v" };
+    pins[o.id + ".b"] = { x: o.x, y: o.y + r, o: "v" };
+    pins[o.id + ".l"] = { x: o.x - r, y: o.y, o: "h" };
+    pins[o.id + ".r"] = { x: o.x + r, y: o.y, o: "h" };
+  });
+  (spec.terms || []).forEach(t => {
+    pins[t.id] = { x: t.x, y: t.y, o: t.o || "h" };
+    if (t.s != null) svText(g, t.x + (t.dx || 0), t.y + (t.dy ?? 4), t.s, t.a || "middle");
+  });
+  const P = ref => typeof ref === "object" ? ref : pins[ref];
+  (spec.wires || []).forEach(w => {
+    const [ra, rb, opt = {}] = w;
+    let b = P(rb), a;
+    if (!b) { console.warn("pin yok", rb); return; }
+    if (typeof ra === "string" && ra.startsWith("bus:")) {
+      a = { x: pins[ra].x, y: b.y, o: "h" };
+      sv("circle", { cx: a.x, cy: a.y, r: 2.6, class: "dot" }, g);
+    } else a = P(ra);
+    if (!a) { console.warn("pin yok", ra); return; }
+    let d = `M${a.x} ${a.y}`;
+    if (opt.via) opt.via.forEach(([x, y]) => d += `L${x} ${y}`), d += `L${b.x} ${b.y}`;
+    else if (a.o === "h" && b.o === "h") d += a.y === b.y ? `H${b.x}` : `H${opt.mx ?? (a.x + b.x) / 2}V${b.y}H${b.x}`;
+    else if (a.o === "v" && b.o === "v") d += a.x === b.x ? `V${b.y}` : `V${opt.my ?? (a.y + b.y) / 2}H${b.x}V${b.y}`;
+    else if (a.o === "h") d += `H${b.x}V${b.y}`;
+    else d += `V${b.y}H${b.x}`;
+    sv("path", { d, class: "w" }, g);
+  });
+  (spec.lines || []).forEach(d => sv("path", { d, class: "w" }, g));
+  (spec.dots || []).forEach(([x, y]) => sv("circle", { cx: x, cy: y, r: 2.6, class: "dot" }, g));
+  (spec.texts || []).forEach(t => svText(g, t.x, t.y, t.s, t.a || "middle", t.cls || "lb small"));
+}
+
+const faBlock = (id, x, y) => ({
+  id, x, y, w: 70, h: 60, label: "TT", pins: [
+    { n: "A", side: "top", at: 0.3 }, { n: "B", side: "top", at: 0.7 },
+    { n: "Ci", side: "right", at: 0.5 }, { n: "Co", side: "left", at: 0.5 }, { n: "S", side: "bottom", at: 0.5 }
+  ]
+});
+
+const CIRCUITS = {
+  analiz: {
+    w: 410, h: 250,
+    buses: [
+      { name: "A", x: 30, y1: 22, y2: 240 }, { name: "B", x: 55, y1: 22, y2: 240 }, { name: "C", x: 80, y1: 22, y2: 240 },
+      { name: "Bn", label: "B'", x: 160, y1: 40, y2: 240, lx: 168, ly: 58, la: "start" }
+    ],
+    gates: [
+      { id: "n1", t: "not", x: 100, y: 28 },
+      { id: "g1", t: "and", x: 200, y: 50, label: "T_1" },
+      { id: "g2", t: "and", x: 200, y: 110, label: "T_2" },
+      { id: "g3", t: "or", x: 300, y: 80 },
+      { id: "g4", t: "nor", x: 200, y: 180 }
+    ],
+    terms: [{ id: "busBn", x: 160, y: 40 }, { id: "F", x: 378, y: 100, s: "F", dx: 12 }, { id: "G", x: 378, y: 200, s: "G", dx: 12 }],
+    wires: [
+      ["bus:B", "n1.i0"], ["n1.o", "busBn"],
+      ["bus:A", "g1.i0"], ["bus:Bn", "g1.i1"], ["bus:B", "g2.i0"], ["bus:C", "g2.i1"],
+      ["g1.o", "g3.i0", { mx: 274 }], ["g2.o", "g3.i1", { mx: 274 }], ["g3.o", "F"],
+      ["bus:A", "g4.i0"], ["bus:C", "g4.i1"], ["g4.o", "G"]
+    ]
+  },
+  ha: {
+    w: 290, h: 180,
+    buses: [{ name: "x", x: 30, y1: 22, y2: 170 }, { name: "y", x: 60, y1: 22, y2: 170 }],
+    gates: [{ id: "g1", t: "xor", x: 140, y: 30 }, { id: "g2", t: "and", x: 140, y: 110 }],
+    terms: [{ id: "S", x: 245, y: 50, s: "S", dx: 12 }, { id: "C", x: 245, y: 130, s: "C", dx: 12 }],
+    wires: [["bus:x", "g1.i0"], ["bus:y", "g1.i1"], ["bus:x", "g2.i0"], ["bus:y", "g2.i1"], ["g1.o", "S"], ["g2.o", "C"]]
+  },
+  fa: {
+    w: 470, h: 250,
+    buses: [{ name: "x", x: 30, y1: 22, y2: 240 }, { name: "y", x: 55, y1: 22, y2: 240 }, { name: "z", x: 80, y1: 22, y2: 240 }],
+    gates: [
+      { id: "g1", t: "xor", x: 130, y: 30, label: "x⊕y" },
+      { id: "g2", t: "xor", x: 280, y: 50 },
+      { id: "g4", t: "and", x: 280, y: 110 },
+      { id: "g3", t: "and", x: 130, y: 160, label: "xy" },
+      { id: "g5", t: "or", x: 365, y: 140 }
+    ],
+    terms: [{ id: "S", x: 440, y: 70, s: "S", dx: 12 }, { id: "C", x: 440, y: 160, s: "C", dx: 12 }],
+    wires: [
+      ["bus:x", "g1.i0"], ["bus:y", "g1.i1"],
+      ["g1.o", "g2.i0", { mx: 230 }], ["bus:z", "g2.i1"],
+      ["g1.o", "g4.i0", { mx: 230 }], ["bus:z", "g4.i1"],
+      ["bus:x", "g3.i0"], ["bus:y", "g3.i1"],
+      ["g4.o", "g5.i0", { mx: 345 }], ["g3.o", "g5.i1"],
+      ["g2.o", "S"], ["g5.o", "C"]
+    ],
+    dots: [[230, 60]],
+    texts: [{ x: 155, y: 242, s: "1. yarım toplayıcı" }, { x: 318, y: 242, s: "2. yarım toplayıcı" }]
+  },
+  ripple: (() => {
+    const xs = [40, 150, 260, 370], blocks = [], terms = [], wires = [], texts = [];
+    xs.forEach((x, k) => {
+      const i = 3 - k, id = "fa" + i;
+      blocks.push(faBlock(id, x, 70));
+      terms.push({ id: "A" + i, x: x + 21, y: 30, o: "v", s: "A_" + i, dy: -10 });
+      terms.push({ id: "B" + i, x: x + 49, y: 30, o: "v", s: "B_" + i, dy: -10 });
+      terms.push({ id: "S" + i, x: x + 35, y: 165, o: "v", s: "S_" + i, dy: 16 });
+      wires.push(["A" + i, id + ".A"], ["B" + i, id + ".B"], [id + ".S", "S" + i]);
+    });
+    for (let i = 0; i < 3; i++) wires.push(["fa" + i + ".Co", "fa" + (i + 1) + ".Ci"]);
+    terms.push({ id: "C0", x: 470, y: 100, s: "C_0", dx: 16 }, { id: "C4", x: 14, y: 100, s: "C_4", dy: -8, dx: 4 });
+    wires.push(["C0", "fa0.Ci"], ["fa3.Co", "C4"]);
+    texts.push({ x: 350, y: 94, s: "C_1" }, { x: 240, y: 94, s: "C_2" }, { x: 130, y: 94, s: "C_3" });
+    return { w: 500, h: 195, blocks, terms, wires, texts };
+  })(),
+  addsub: (() => {
+    const xs = [60, 170, 280, 390], blocks = [], terms = [], wires = [], xors = [], lines = [], dots = [], texts = [];
+    xs.forEach((x, k) => {
+      const i = 3 - k, id = "fa" + i;
+      blocks.push(faBlock(id, x, 120));
+      xors.push({ id: "x" + i, x: x + 49, y: 85 });
+      terms.push({ id: "A" + i, x: x + 21, y: 24, o: "v", s: "A_" + i, dy: -10 });
+      terms.push({ id: "B" + i, x: x + 49, y: 24, o: "v", s: "B_" + i, dy: -10 });
+      terms.push({ id: "S" + i, x: x + 35, y: 222, o: "v", s: "S_" + i, dy: 15 });
+      wires.push(["A" + i, id + ".A"], ["B" + i, "x" + i + ".t"], ["x" + i + ".b", id + ".B"], [id + ".S", "S" + i]);
+      lines.push(`M${x + 30} 50V85H${x + 40}`);
+      dots.push([x + 30, 50]);
+    });
+    for (let i = 0; i < 3; i++) wires.push(["fa" + i + ".Co", "fa" + (i + 1) + ".Ci"]);
+    lines.push("M90 50H505", "M482 50V150H460", "M60 150H24V205H31", "M150 150V205H49", "M40 214V232");
+    dots.push([482, 50], [150, 150]);
+    xors.push({ id: "v", x: 40, y: 205 });
+    texts.push({ x: 505, y: 43, s: "M", cls: "lb" }, { x: 492, y: 145, s: "C_0" }, { x: 240, y: 144, s: "C_2" },
+      { x: 350, y: 144, s: "C_1" }, { x: 162, y: 168, s: "C_3" }, { x: 14, y: 143, s: "C_4" }, { x: 40, y: 246, s: "V", cls: "lb" });
+    return { w: 520, h: 250, blocks, terms, wires, xors, lines, dots, texts };
+  })(),
+  bcd: {
+    w: 400, h: 280,
+    blocks: [
+      { id: "u1", x: 140, y: 40, w: 180, h: 44, label: "4 bitlik toplayıcı", pins: [
+        { n: "A", side: "top", at: 0.3 }, { n: "B", side: "top", at: 0.7 }, { n: "Ci", side: "right", at: 0.5 },
+        { n: "Z", side: "bottom", at: 0.5 }, { n: "K", side: "left", at: 0.5 }] },
+      { id: "d", x: 15, y: 110, w: 120, h: 50, label: "Düzeltme\nK + Z₈Z₄ + Z₈Z₂", small: true, pins: [
+        { n: "K", side: "top", at: 0.5 }, { n: "Z", side: "right", at: 0.48 }, { n: "C", side: "bottom", at: 0.5 }] },
+      { id: "u2", x: 140, y: 190, w: 180, h: 44, label: "4 bitlik toplayıcı", pins: [
+        { n: "Z", side: "top", at: 0.5 }, { n: "X", side: "left", at: 0.5 }, { n: "S", side: "bottom", at: 0.5 }] }
+    ],
+    terms: [
+      { id: "A", x: 194, y: 18, o: "v", s: "A", dy: -4 }, { id: "B", x: 266, y: 18, o: "v", s: "B", dy: -4 },
+      { id: "Ci", x: 352, y: 62, s: "C_{gir}", a: "start", dx: 4 }, { id: "S", x: 230, y: 262, o: "v", s: "S (BCD)", dy: 14 },
+      { id: "zt", x: 230, y: 134 }, { id: "Cout", x: 8, y: 182 }
+    ],
+    wires: [["A", "u1.A"], ["B", "u1.B"], ["Ci", "u1.Ci"], ["u1.K", "d.K"], ["u1.Z", "u2.Z"], ["zt", "d.Z"], ["d.C", "u2.X"], ["u2.S", "S"],
+      [{ x: 75, y: 182, o: "h" }, "Cout"]],
+    dots: [[230, 134], [75, 182]],
+    texts: [{ x: 120, y: 56, s: "K", cls: "lb" }, { x: 240, y: 110, s: "Z₈Z₄Z₂Z₁", a: "start" }, { x: 112, y: 206, s: "0CC0", a: "middle" },
+      { x: 8, y: 176, s: "C (elde çıkışı)", a: "start" }]
+  },
+  mult: {
+    w: 470, h: 280,
+    gates: [
+      { id: "g0", t: "and", x: 70, y: 10 }, { id: "g1", t: "and", x: 70, y: 70 },
+      { id: "g2", t: "and", x: 70, y: 125 }, { id: "g3", t: "and", x: 70, y: 200 }
+    ],
+    blocks: [
+      { id: "h1", x: 200, y: 75, w: 70, h: 90, label: "YT", pins: [
+        { n: "a", side: "left", at: 0.25 }, { n: "b", side: "left", at: 0.75 }, { n: "S", side: "right", at: 0.25, lbl: "S" }, { n: "C", side: "bottom", at: 0.5, lbl: "C" }] },
+      { id: "h2", x: 320, y: 185, w: 70, h: 80, label: "YT", pins: [
+        { n: "a", side: "left", at: 0.25 }, { n: "b", side: "left", at: 0.75 }, { n: "S", side: "right", at: 0.25, lbl: "S" }, { n: "C", side: "right", at: 0.75, lbl: "C" }] }
+    ],
+    terms: [
+      { id: "a00", x: 40, y: 20, s: "A_0", a: "end", dx: -4 }, { id: "b00", x: 40, y: 40, s: "B_0", a: "end", dx: -4 },
+      { id: "a10", x: 40, y: 80, s: "A_1", a: "end", dx: -4 }, { id: "b10", x: 40, y: 100, s: "B_0", a: "end", dx: -4 },
+      { id: "a01", x: 40, y: 135, s: "A_0", a: "end", dx: -4 }, { id: "b01", x: 40, y: 155, s: "B_1", a: "end", dx: -4 },
+      { id: "a11", x: 40, y: 210, s: "A_1", a: "end", dx: -4 }, { id: "b11", x: 40, y: 230, s: "B_1", a: "end", dx: -4 },
+      { id: "C0", x: 430, y: 30, s: "C_0", a: "start", dx: 6 }, { id: "C1", x: 430, y: 97.5, s: "C_1", a: "start", dx: 6 },
+      { id: "C2", x: 430, y: 205, s: "C_2", a: "start", dx: 6 }, { id: "C3", x: 430, y: 245, s: "C_3", a: "start", dx: 6 }
+    ],
+    wires: [
+      ["a00", "g0.i0"], ["b00", "g0.i1"], ["a10", "g1.i0"], ["b10", "g1.i1"],
+      ["a01", "g2.i0"], ["b01", "g2.i1"], ["a11", "g3.i0"], ["b11", "g3.i1"],
+      ["g0.o", "C0"], ["g1.o", "h1.a", { mx: 150 }], ["g2.o", "h1.b", { mx: 160 }],
+      ["h1.S", "C1"], ["h1.C", "h2.b"], ["g3.o", "h2.a", { mx: 295 }], ["h2.S", "C2"], ["h2.C", "C3"]
+    ],
+    texts: [{ x: 228, y: 190, s: "k_1", a: "end" }]
+  },
+  decf: (() => {
+    const blocks = [{ id: "d", x: 60, y: 20, w: 90, h: 240, label: "3×8\nkod\nçözücü", pins: [
+      { n: "A", side: "left", at: 0.25, lbl: "2²" }, { n: "B", side: "left", at: 0.5, lbl: "2¹" }, { n: "C", side: "left", at: 0.75, lbl: "2⁰" },
+      ...[0, 1, 2, 3, 4, 5, 6, 7].map(k => ({ n: "D" + k, side: "right", at: (k + 0.5) / 8, lbl: String(k) }))] }];
+    const gates = [{ id: "f1", t: "or", n: 3, x: 285, y: 50 }, { id: "f2", t: "or", n: 3, x: 285, y: 170 }];
+    const terms = [{ id: "A", x: 26, y: 80, s: "A", a: "end", dx: -4 }, { id: "B", x: 26, y: 140, s: "B", a: "end", dx: -4 }, { id: "C", x: 26, y: 200, s: "C", a: "end", dx: -4 },
+      { id: "F1", x: 370, y: 74, s: "F_1", a: "start", dx: 6 }, { id: "F2", x: 370, y: 194, s: "F_2", a: "start", dx: 6 }];
+    const wires = [["A", "d.A"], ["B", "d.B"], ["C", "d.C"],
+      ["d.D0", "f1.i0", { mx: 190 }], ["d.D3", "f1.i1", { mx: 205 }], ["d.D5", "f1.i2", { mx: 220 }],
+      ["d.D1", "f2.i0", { mx: 238 }], ["d.D2", "f2.i1", { mx: 252 }], ["d.D6", "f2.i2", { mx: 266 }],
+      ["f1.o", "F1"], ["f2.o", "F2"]];
+    const lines = ["M150 155H166", "M150 245H166"];
+    return { w: 400, h: 275, blocks, gates, terms, wires, lines };
+  })(),
+  mux: {
+    w: 330, h: 230,
+    blocks: [{ id: "m", x: 130, y: 20, w: 80, h: 170, label: "4×1\nMUX", pins: [
+      ...[0, 1, 2, 3].map(k => ({ n: "I" + k, side: "left", at: (k + 0.5) / 4, lbl: String(k) })),
+      { n: "S1", side: "bottom", at: 0.35 }, { n: "S0", side: "bottom", at: 0.65 }, { n: "Y", side: "right", at: 0.5 }] }],
+    terms: [
+      ...[0, 1, 2, 3].map(k => ({ id: "I" + k, x: 80, y: 20 + 170 * (k + 0.5) / 4, s: "I_" + k, a: "end", dx: -6 })),
+      { id: "S1", x: 158, y: 215, o: "v", s: "S_1", dy: 14 }, { id: "S0", x: 182, y: 215, o: "v", s: "S_0", dy: 14 },
+      { id: "Y", x: 270, y: 105, s: "Y", a: "start", dx: 6 }],
+    wires: [["I0", "m.I0"], ["I1", "m.I1"], ["I2", "m.I2"], ["I3", "m.I3"], ["S1", "m.S1"], ["S0", "m.S0"], ["m.Y", "Y"]]
+  },
+  muxf: {
+    w: 340, h: 235,
+    buses: [{ name: "C", x: 40, y1: 22, y2: 95 }],
+    gates: [{ id: "n1", t: "not", x: 95, y: 29.25 }],
+    blocks: [{ id: "m", x: 170, y: 20, w: 80, h: 170, label: "4×1\nMUX", pins: [
+      ...[0, 1, 2, 3].map(k => ({ n: "I" + k, side: "left", at: (k + 0.5) / 4, lbl: String(k) })),
+      { n: "S1", side: "bottom", at: 0.35 }, { n: "S0", side: "bottom", at: 0.65 }, { n: "Y", side: "right", at: 0.5 }] }],
+    terms: [
+      { id: "one", x: 130, y: 126.25, s: "1", a: "end", dx: -6 }, { id: "zero", x: 130, y: 168.75, s: "0", a: "end", dx: -6 },
+      { id: "S1", x: 198, y: 218, o: "v", s: "A", dy: 14 }, { id: "S0", x: 222, y: 218, o: "v", s: "B", dy: 14 },
+      { id: "F", x: 300, y: 105, s: "F", a: "start", dx: 6 }],
+    wires: [["bus:C", "n1.i0"], ["n1.o", "m.I0"], ["bus:C", "m.I1"], ["one", "m.I2"], ["zero", "m.I3"], ["S1", "m.S1"], ["S0", "m.S0"], ["m.Y", "F"]],
+    texts: [{ x: 152, y: 35, s: "C'" }, { x: 152, y: 78, s: "C" }]
+  }
+};
+
+/* ===================== İFADELER (çok çıkışlı fonksiyonlar) ===================== */
+const rng = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const FUNCS = {
+  analiz: { vars: ["A", "B", "C"], outs: [{ name: "F", on: [3, 4, 5, 7] }, { name: "G", on: [0, 2] }] },
+  ha: { title: "Yarım toplayıcı", vars: ["x", "y"], outs: [{ name: "S", on: [1, 2] }, { name: "C", on: [3] }] },
+  fa: { title: "Tam toplayıcı", vars: ["x", "y", "z"], outs: [{ name: "S", on: [1, 2, 4, 7] }, { name: "C", on: [3, 5, 6, 7] }] },
+  ex3: { vars: ["A", "B", "C", "D"], dc: rng(10, 15), outs: [
+    { name: "w", on: [5, 6, 7, 8, 9] }, { name: "x", on: [1, 2, 3, 4, 9] },
+    { name: "y", on: [0, 3, 4, 7, 8] }, { name: "z", on: [0, 2, 4, 6, 8] }] },
+  bcdk: { title: "K = 0 iken", vars: ["Z_8", "Z_4", "Z_2", "Z_1"], outs: [{ name: "C", on: rng(10, 15) }] },
+  bcdc: { vars: ["K", "Z_8", "Z_4", "Z_2", "Z_1"], dc: rng(20, 31), outs: [{ name: "C", on: [...rng(10, 15), ...rng(16, 19)] }] },
+  enc: { vars: ["D_3", "D_2", "D_1", "D_0"], outs: [
+    { name: "x", on: rng(4, 15), dc: [0] }, { name: "y", on: [2, 3, ...rng(8, 15)], dc: [0] }, { name: "V", on: rng(1, 15) }] },
+  decf: { vars: ["A", "B", "C"], outs: [{ name: "F_1", on: [0, 3, 5] }, { name: "F_2", on: [1, 2, 6] }] },
+  muxf: { vars: ["A", "B", "C"], outs: [{ name: "F", on: [0, 3, 4, 5] }] },
+  mult: { vars: ["A_1", "A_0", "B_1", "B_0"], outs: [3, 2, 1, 0].map(k => ({
+    name: "C_" + k,
+    on: rng(0, 15).filter(m => ((((m >> 3) & 1) * 2 + ((m >> 2) & 1)) * (((m >> 1) & 1) * 2 + (m & 1)) >> k) & 1)
+  })) }
+};
+const outDc = (F, o) => new Set(o.dc || F.dc || []);
+const uni = v => v.replace(/_(\d+)/g, (_, d) => subd(d));
+
+// 0'ların en sade örtüsü (F' için çarpımlar toplamı); toplamlar çarpımı bundan okunur
+function posCover(n, on, dc) {
+  const zeros = new Set();
+  for (let m = 0; m < (1 << n); m++) if (!on.has(m) && !dc.has(m)) zeros.add(m);
+  return minimalCover(n, zeros, dc).cover;
+}
+// küp → değişken listesi; flip = toplam terimi (0'lardan) için kutupları çevir
+function litsOf(c, n, flip) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const bit = 1 << (n - 1 - i);
+    if (c.mask & bit) { let neg = !(c.value & bit); if (flip) neg = !neg; out.push({ v: i, neg }); }
+  }
+  return out;
+}
+const litTex = (F, l) => l.neg ? "\\overline{" + F.vars[l.v] + "}" : F.vars[l.v];
+const prodTex = (F, t) => t.map((l, i) => (i && (l.neg || t[i - 1].neg) ? "\\," : "") + litTex(F, l)).join("");
+const sumTex = (F, t) => t.length > 1 ? "(" + t.map(l => litTex(F, l)).join(" + ") + ")" : litTex(F, t[0]);
+
+/* ===================== KAPI DEVRESİ ÜRETİCİ ===================== */
+const pinPos = (t, x, y, h, n, k) => {
+  const tt = (2 * k + 1) / (2 * n);
+  return { x: OR_LIKE.has(t) ? x + 24 * tt * (1 - tt) - (t === "xor" || t === "xnor" ? 7 : 0) : x, y: y + h * tt };
+};
+const outXOf = (t, x, h) => ({ and: x + 25 + h / 2, nand: x + 33 + h / 2, or: x + 50, xor: x + 50, nor: x + 58, xnor: x + 58, not: x + 36 })[t];
+const hOf = k => k <= 1 ? 24 : k === 2 ? 40 : k === 3 ? 48 : 14 * k;
+
+function tieInputs(spec, src, t, gx, gy, h) {
+  const p0 = pinPos(t, gx, gy, h, 2, 0), p1 = pinPos(t, gx, gy, h, 2, 1), fx = gx - 10;
+  spec.lines.push(`M${src.x} ${src.y}H${fx}`, `M${fx} ${p0.y}V${p1.y}`, `M${fx} ${p0.y}H${p0.x}`, `M${fx} ${p1.y}H${p1.x}`);
+  if (src.dot) spec.dots.push([src.x, src.y]);
+  spec.dots.push([fx, src.y]);
+}
+
+// style: "andor" | "nand" | "nor"
+function genCircuit(F, oi, style) {
+  const n = F.vars.length, o = F.outs[oi];
+  const on = new Set(o.on), dc = outDc(F, o);
+  const isNor = style === "nor";
+  const cover = isNor ? posCover(n, on, dc) : minimalCover(n, on, dc).cover;
+  const terms = cover.map(c => litsOf(c, n, isNor)).sort((a, b) => b.length - a.length || a[0].v - b[0].v);
+  const G1 = { andor: "and", nand: "nand", nor: "nor" }[style];
+  const G2 = { andor: "or", nand: "nand", nor: "nor" }[style];
+  const GI = { andor: "not", nand: "nand", nor: "nor" }[style];
+  const finalSingle = l => style === "andor" ? l : { v: l.v, neg: !l.neg };
+
+  const busLits = [];
+  terms.forEach(t => {
+    if (t.length > 1) busLits.push(...t);
+    else busLits.push(terms.length > 1 ? finalSingle(t[0]) : t[0]);
+  });
+  const usedVars = [...new Set(busLits.map(l => l.v))].sort((a, b) => a - b);
+  const negVars = [...new Set(busLits.filter(l => l.neg).map(l => l.v))].sort((a, b) => a - b);
+
+  const spec = { buses: [], gates: [], terms: [], wires: [], lines: [], dots: [], texts: [] };
+  const TOP = 26;
+  const trueX = {};
+  usedVars.forEach((v, i) => trueX[v] = 30 + i * 24);
+  const lastTrue = 30 + (usedVars.length - 1) * 24;
+  const xInv = lastTrue + 34;
+  const compX = {}, compY = {};
+  negVars.forEach((v, k) => compX[v] = xInv + outXOf(GI, 0, 24) + 18 + k * 24);
+  const busRight = negVars.length ? compX[negVars[negVars.length - 1]] : lastTrue;
+  const busX = l => l.neg ? compX[l.v] : trueX[l.v];
+
+  // tümleyenler
+  negVars.forEach((v, k) => {
+    const gy = TOP + k * 32, yc = gy + 12, id = "inv" + k;
+    spec.gates.push({ id, t: GI, n: GI === "not" ? 1 : 2, h: 24, x: xInv, y: gy });
+    if (GI === "not") { spec.wires.push([{ x: trueX[v], y: yc, o: "h" }, id + ".i0"]); spec.dots.push([trueX[v], yc]); }
+    else tieInputs(spec, { x: trueX[v], y: yc, dot: true }, GI, xInv, gy, 24);
+    spec.wires.push([id + ".o", { x: compX[v], y: yc, o: "h" }]);
+    compY[v] = yc;
+  });
+
+  // birinci seviye
+  let y = TOP + negVars.length * 32 + (negVars.length ? 10 : 0);
+  const x1 = busRight + 40;
+  const rows = [];
+  terms.forEach((t, i) => {
+    if (t.length > 1) {
+      const h = hOf(t.length), id = "t" + i;
+      spec.gates.push({ id, t: G1, n: t.length, h, x: x1, y });
+      t.forEach((l, k) => {
+        const p = pinPos(G1, x1, y, h, t.length, k);
+        spec.wires.push([{ x: busX(l), y: p.y, o: "h" }, id + ".i" + k]);
+        spec.dots.push([busX(l), p.y]);
+      });
+      rows.push({ ref: id + ".o", y: y + h / 2, x: outXOf(G1, x1, h) });
+      y += h + 14;
+    } else {
+      rows.push({ lit: terms.length > 1 ? finalSingle(t[0]) : t[0], y: y + 10 });
+      y += 34;
+    }
+  });
+  const x1End = Math.max(x1 + 44, ...rows.filter(r => r.ref).map(r => r.x));
+
+  // ikinci seviye
+  let outRef, outY, xEnd, bottom = y;
+  if (terms.length >= 2) {
+    const k = terms.length, h2 = hOf(k);
+    const yc = rows.reduce((a, r) => a + r.y, 0) / k;
+    const gy = Math.max(TOP, yc - h2 / 2);
+    const x2 = x1End + 26 + 8 * k;
+    spec.gates.push({ id: "fin", t: G2, n: k, h: h2, x: x2, y: gy });
+    rows.forEach((r, j) => {
+      const mx = x1End + 12 + 8 * (r.y < yc ? j : k - 1 - j);
+      if (r.ref) spec.wires.push([r.ref, "fin.i" + j, { mx }]);
+      else { const bx = busX(r.lit); spec.dots.push([bx, r.y]); spec.wires.push([{ x: bx, y: r.y, o: "h" }, "fin.i" + j, { mx }]); }
+    });
+    outRef = "fin.o"; outY = gy + h2 / 2; xEnd = outXOf(G2, x2, h2);
+    bottom = Math.max(bottom, gy + h2 + 10);
+  } else {
+    const r = rows[0];
+    if (r.ref && style === "andor") { outRef = r.ref; outY = r.y; xEnd = r.x; }
+    else if (r.ref) {
+      const gx = r.x + 28, gy = r.y - 12;
+      spec.gates.push({ id: "finv", t: GI, n: 2, h: 24, x: gx, y: gy });
+      tieInputs(spec, { x: r.x, y: r.y }, GI, gx, gy, 24);
+      outRef = "finv.o"; outY = r.y; xEnd = outXOf(GI, gx, 24);
+    } else {
+      const bx = busX(r.lit); spec.dots.push([bx, r.y]);
+      outRef = { x: bx, y: r.y, o: "h" }; outY = r.y; xEnd = x1 + 30;
+    }
+  }
+  const fx = xEnd + 30;
+  spec.terms.push({ id: "OUT", x: fx, y: outY, s: o.name, a: "start", dx: 6 });
+  spec.wires.push([outRef, "OUT"]);
+  bottom += 4;
+  usedVars.forEach(v => spec.buses.push({ name: "t" + v, label: F.vars[v], x: trueX[v], y1: 18, y2: bottom }));
+  negVars.forEach(v => spec.buses.push({ name: "c" + v, label: F.vars[v] + "'", x: compX[v], y1: compY[v], y2: bottom, lx: compX[v] + 4, ly: compY[v] + 15, la: "start" }));
+  spec.w = fx + 40;
+  spec.h = bottom + 6;
+
+  // açıklama
+  const name = F.outs[oi].name;
+  let formula;
+  if (terms.length === 1 && terms[0].length === 1) formula = `${name} = ${litTex(F, terms[0][0])}`;
+  else if (style === "andor") formula = `${name} = ${terms.map(t => prodTex(F, t)).join(" + ")}`;
+  else if (style === "nand") {
+    const parts = terms.map(t => "\\overline{" + prodTex(F, t) + "}");
+    formula = `${name} = ${terms.map(t => prodTex(F, t)).join(" + ")} = \\overline{${parts.join("\\cdot")}}`;
+    if (terms.length === 1) formula = `${name} = ${prodTex(F, terms[0])} = \\overline{\\overline{${prodTex(F, terms[0])}}}`;
+  } else {
+    const pos = terms.map(t => sumTex(F, t)).join("");
+    const parts = terms.map(t => "\\overline{" + sumTex(F, t) + "}");
+    formula = terms.length > 1 ? `${name} = ${pos} = \\overline{${parts.join(" + ")}}` : `${name} = ${pos} = \\overline{\\overline{${sumTex(F, terms[0])}}}`;
+  }
+  return { spec, formula, gates: spec.gates.length };
+}
+
+/* ===================== GÖRÜNÜM SEÇİCİ ===================== */
+const STYLE_NAMES = { orig: "Özgün devre", andor: "VE–VEYA", nand: "Yalnız VEDEĞİL", nor: "Yalnız VEYADEĞİL" };
+const STYLE_NOTE = {
+  andor: "İki seviyeli VE–VEYA: 1'lerin gruplanmasından (çarpımlar toplamı).",
+  nand: "VEDEĞİL–VEDEĞİL: aynı çarpımlar toplamı, iki kez tümlenerek. Tümleyen için girişleri birleştirilmiş VEDEĞİL.",
+  nor: "VEYADEĞİL–VEYADEĞİL: 0'ların gruplanmasından (toplamlar çarpımı), iki kez tümlenerek."
+};
+function setupView(host) {
+  const F = FUNCS[host.dataset.ifade];
+  const orig = host.dataset.devre;
+  const styles = (orig ? ["orig"] : []).concat(["andor", "nand", "nor"]);
+  let style = styles[0], oi = 0;
+  host.classList.add("gorunum");
+  const bar = el("div", "g-bar");
+  const seg = el("div", "seg");
+  seg.setAttribute("role", "group");
+  seg.setAttribute("aria-label", "Gösterim");
+  const btns = styles.map(s => {
+    const b = el("button", null, STYLE_NAMES[s]);
+    b.type = "button";
+    b.addEventListener("click", () => { style = s; render(); });
+    seg.append(b);
+    return [s, b];
+  });
+  bar.append(seg);
+  const chips = el("div", "seg chips");
+  chips.setAttribute("role", "group");
+  chips.setAttribute("aria-label", "Çıkış");
+  const chipBtns = F.outs.map((o, i) => {
+    const b = el("button", null, uni(o.name));
+    b.type = "button";
+    b.addEventListener("click", () => { oi = i; render(); });
+    chips.append(b);
+    return b;
+  });
+  if (F.outs.length > 1) bar.append(chips);
+  const svg = sv("svg", { class: "devre" + (host.dataset.kucuk ? " kucuk" : ""), role: "img" });
+  const cap = el("p", "g-cap");
+  host.append(bar, svg, cap);
+  host.addEventListener("keydown", e => { if (e.target.closest("button") && (e.key === " " || e.key === "Enter")) e.stopPropagation(); });
+  keepTouch(host);
+  function render() {
+    btns.forEach(([s, b]) => b.setAttribute("aria-pressed", s === style ? "true" : "false"));
+    chipBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === oi ? "true" : "false"));
+    chips.style.display = style === "orig" ? "none" : "";
+    svg.replaceChildren();
+    if (style === "orig") {
+      drawCircuit(svg, CIRCUITS[orig]);
+      svg.setAttribute("aria-label", host.dataset.label || "Özgün devre");
+      cap.textContent = host.dataset.not || "";
+    } else {
+      const g = genCircuit(F, oi, style);
+      drawCircuit(svg, g.spec);
+      svg.setAttribute("aria-label", STYLE_NAMES[style] + " devresi, " + uni(F.outs[oi].name) + " çıkışı");
+      cap.replaceChildren();
+      const f = el("span", "g-f");
+      tex(f, g.formula);
+      cap.append(f, el("span", "g-n", ` ${g.gates} kapı. ${STYLE_NOTE[style]}`));
+    }
+  }
+  render();
+}
+
+/* ===================== ÇÖZÜLMÜŞ HARİTALAR ===================== */
+function ringsOn(cellAt, cellOfM, R, C, groups, small) {
+  groups.forEach((g, gi) => {
+    const rowsUsed = new Set(), colsUsed = new Set();
+    g.set.forEach(m => { const p = cellOfM.get(m); rowsUsed.add(p.r); colsUsed.add(p.c); });
+    const fullRows = rowsUsed.size === R, fullCols = colsUsed.size === C;
+    const inset = small ? 2 + (gi % 3) * 3 : 3 + (gi % 4) * 4;
+    g.set.forEach(m => {
+      const { node, r, c } = cellOfM.get(m);
+      const has = (rr, cc) => g.set.has(cellAt[rr][cc]);
+      const openL = c > 0 ? has(r, c - 1) : (!fullCols && has(r, C - 1));
+      const openR = c < C - 1 ? has(r, c + 1) : (!fullCols && has(r, 0));
+      const openT = r > 0 ? has(r - 1, c) : (!fullRows && has(R - 1, c));
+      const openB = r < R - 1 ? has(r + 1, c) : (!fullRows && has(0, c));
+      const ring = el("span", "ring");
+      ring.style.setProperty("--gc", `var(--g${gi % 6})`);
+      const w = small ? "2.5px" : "3px", rad = small ? "0.6em" : "0.9em";
+      ring.style.top = openT ? "-1px" : inset + "px";
+      ring.style.bottom = openB ? "-1px" : inset + "px";
+      ring.style.left = openL ? "-1px" : inset + "px";
+      ring.style.right = openR ? "-1px" : inset + "px";
+      ring.style.borderTopWidth = openT ? "0" : w;
+      ring.style.borderBottomWidth = openB ? "0" : w;
+      ring.style.borderLeftWidth = openL ? "0" : w;
+      ring.style.borderRightWidth = openR ? "0" : w;
+      ring.style.borderTopLeftRadius = !openT && !openL ? rad : "0";
+      ring.style.borderTopRightRadius = !openT && !openR ? rad : "0";
+      ring.style.borderBottomLeftRadius = !openB && !openL ? rad : "0";
+      ring.style.borderBottomRightRadius = !openB && !openR ? rad : "0";
+      node.append(ring);
+    });
+  });
+}
+
+function solvedMap(F, oi, mode) {
+  const n = F.vars.length, o = F.outs[oi];
+  const on = new Set(o.on), dc = outDc(F, o);
+  const pos = mode === "pos";
+  const cover = pos ? posCover(n, on, dc) : minimalCover(n, on, dc).cover;
+  const card = el("div", "h-card");
+  const title = el("div", "h-t");
+  title.textContent = (F.title ? F.title + ": " : "") + uni(o.name);
+  card.append(title);
+  const rowBits = Math.floor(n / 2), colBits = n - rowBits;
+  const rowCodes = GRAY[rowBits], colCodes = GRAY[colBits], R = rowCodes.length, C = colCodes.length;
+  const map = el("div", "km-map mini");
+  map.style.gridTemplateColumns = `calc(var(--cell) * 0.9) repeat(${C}, var(--cell))`;
+  const corner = el("div", "km-corner");
+  corner.append(el("span", "rv", F.vars.slice(0, rowBits).map(uni).join("")), el("span", "cv", F.vars.slice(rowBits).map(uni).join("")));
+  map.append(corner);
+  colCodes.forEach(c => map.append(el("div", "km-hdr col", c.toString(2).padStart(colBits, "0"))));
+  const cellAt = [], cellOfM = new Map();
+  rowCodes.forEach((rc, r) => {
+    map.append(el("div", "km-hdr row", rc.toString(2).padStart(rowBits, "0")));
+    cellAt[r] = [];
+    colCodes.forEach((cc, c) => {
+      const m = (rc << colBits) | cc;
+      const v = on.has(m) ? "1" : dc.has(m) ? "X" : "0";
+      const d = el("div", "km-cell static");
+      d.append(el("span", "idx", m));
+      const val = el("span", "val" + ((pos ? v === "1" : v === "0") ? " faint" : ""), v);
+      d.append(val);
+      if (v === "X") d.classList.add("dc");
+      map.append(d);
+      cellAt[r][c] = m;
+      cellOfM.set(m, { node: d, r, c });
+    });
+  });
+  card.append(map);
+  ringsOn(cellAt, cellOfM, R, C, cover.map(c => ({ set: new Set(members(c, n)) })), true);
+  const ex = el("div", "h-e");
+  const terms = cover.map(c => litsOf(c, n, pos));
+  const rhs = terms.length ? (pos ? terms.map(t => sumTex(F, t)).join("") : terms.map(t => prodTex(F, t)).join(" + ")) : (pos ? "1" : "0");
+  tex(ex, o.name + " = " + rhs);
+  card.append(ex);
+  return card;
+}
+
+function setupMaps(host) {
+  const ids = host.dataset.ifade.split(",").map(s => s.trim());
+  let mode = "sop";
+  host.classList.add("haritalar");
+  const seg = el("div", "seg");
+  const modes = [["sop", "1'leri grupla: çarpımlar toplamı"], ["pos", "0'ları grupla: toplamlar çarpımı"]];
+  const btns = modes.map(([m, t]) => {
+    const b = el("button", null, t);
+    b.type = "button";
+    b.addEventListener("click", () => { mode = m; render(); });
+    seg.append(b);
+    return [m, b];
+  });
+  const grid = el("div", "h-grid");
+  host.append(seg, grid);
+  host.addEventListener("keydown", e => { if (e.target.closest("button") && (e.key === " " || e.key === "Enter")) e.stopPropagation(); });
+  keepTouch(host);
+  function render() {
+    btns.forEach(([m, b]) => b.setAttribute("aria-pressed", m === mode ? "true" : "false"));
+    grid.replaceChildren();
+    ids.forEach(id => FUNCS[id].outs.forEach((_, oi) => grid.append(solvedMap(FUNCS[id], oi, mode))));
+  }
+  render();
+}
+
+/* ===================== ÇOKLAYICIYLA TASARIM ===================== */
+function combosOf(n, k) {
+  const out = [];
+  (function rec(start, acc) {
+    if (acc.length === k) { out.push(acc.slice()); return; }
+    for (let i = start; i < n; i++) { acc.push(i); rec(i + 1, acc); acc.pop(); }
+  })(0, []);
+  return out;
+}
+
+// Seçme değişkenleri sel (en anlamlı önce) code değerine sabitlenince kalan fonksiyon
+function residual(vars, on, dc, sel, code) {
+  const n = vars.length, k = sel.length;
+  const rem = [...Array(n).keys()].filter(i => !sel.includes(i)), r = rem.length;
+  const ron = new Set(), rdc = new Set(), cells = [];
+  for (let j = 0; j < (1 << r); j++) {
+    let m = 0;
+    for (let i = 0; i < n; i++) {
+      const si = sel.indexOf(i);
+      const bit = si >= 0 ? (code >> (k - 1 - si)) & 1 : (j >> (r - 1 - rem.indexOf(i))) & 1;
+      m |= bit << (n - 1 - i);
+    }
+    const v = on.has(m) ? 1 : dc.has(m) ? "X" : 0;
+    if (v === 1) ron.add(j); else if (v === "X") rdc.add(j);
+    cells.push({ m, v });
+  }
+  const names = rem.map(i => vars[i]);
+  let constant = null, terms = [];
+  if (r === 0) constant = cells[0].v === 1 ? 1 : 0;
+  else {
+    const cover = minimalCover(r, ron, rdc).cover;
+    if (!cover.length) constant = 0;
+    else if (cover.some(c => c.mask === 0)) constant = 1;
+    else terms = cover.map(c => litsOf(c, r, false));
+  }
+  return { rem, names, cells, constant, terms, ron, rdc };
+}
+const resTex = res => res.constant != null ? String(res.constant) : res.terms.map(t => prodTex({ vars: res.names }, t)).join(" + ");
+const resPlain = res => res.constant != null ? String(res.constant)
+  : res.terms.map(t => t.map(l => res.names[l.v] + (l.neg ? "'" : "")).join("")).join(" + ");
+
+// Veri girişleri için gereken ek kapılar (aynı ifade bir kez kurulur, tümleyenler paylaşılır)
+function muxCost(list) {
+  const nots = new Set(), seen = new Set();
+  let and = 0, or = 0;
+  list.forEach(res => {
+    if (res.constant != null) return;
+    res.terms.forEach(t => t.forEach(l => { if (l.neg) nots.add(res.names[l.v]); }));
+    const key = resPlain(res);
+    if (seen.has(key)) return;
+    seen.add(key);
+    and += res.terms.filter(t => t.length > 1).length;
+    if (res.terms.length > 1) or += 1;
+  });
+  const total = nots.size + and + or;
+  if (!total) return { total, text: "ek kapı yok" };
+  const parts = [];
+  if (nots.size) parts.push(nots.size + " DEĞİL");
+  if (and) parts.push(and + " VE");
+  if (or) parts.push(or + " VEYA");
+  return { total, text: parts.join(", ") };
+}
+
+function muxSpec(k, selNames, labels, outName) {
+  const N = 1 << k, bh = Math.max(120, N * 24), bx = 160, by = 16;
+  const blocks = [{ id: "m", x: bx, y: by, w: 80, h: bh, label: N + "×1\nMUX", pins: [
+    ...labels.map((_, j) => ({ n: "I" + j, side: "left", at: (j + 0.5) / N, lbl: String(j) })),
+    ...selNames.map((s, i) => ({ n: "S" + i, side: "bottom", at: (i + 1) / (k + 1), lbl: "" })),
+    { n: "Y", side: "right", at: 0.5 }] }];
+  const terms = [], wires = [], texts = [];
+  labels.forEach((lb, j) => {
+    const y = by + bh * (j + 0.5) / N;
+    terms.push({ id: "in" + j, x: 120, y, s: lb, a: "end", dx: -6 });
+    wires.push(["in" + j, "m.I" + j]);
+  });
+  selNames.forEach((s, i) => {
+    const x = bx + 80 * (i + 1) / (k + 1);
+    terms.push({ id: "s" + i, x, y: by + bh + 26, o: "v", s, dy: 14 });
+    wires.push(["s" + i, "m.S" + i]);
+    texts.push({ x, y: by + bh - 5, s: "S_" + (k - 1 - i), cls: "lb tiny" });
+  });
+  terms.push({ id: "out", x: 285, y: by + bh / 2, s: outName, a: "start", dx: 6 });
+  wires.push(["m.Y", "out"]);
+  return { w: 320, h: by + bh + 58, blocks, terms, wires, texts };
+}
+
+function randomMuxProblem() {
+  const names = ["A", "B", "C", "D"];
+  for (let t = 0; t < 200; t++) {
+    const n = Math.random() < 0.5 ? 3 : 4, N = 1 << n;
+    const useDc = Math.random() < 0.3;
+    const on = new Set(), dc = new Set();
+    for (let m = 0; m < N; m++) { const r = Math.random(); if (r < 0.45) on.add(m); else if (useDc && r < 0.55) dc.add(m); }
+    if (on.size < 2 || on.size + dc.size > N - 2) continue;
+    return { vars: names.slice(0, n), on, dc };
+  }
+  return { vars: ["A", "B", "C"], on: new Set([0, 3, 4, 5]), dc: new Set() };
+}
+
+function setupMuxDesign(host) {
+  const exercise = host.dataset.alistirma === "1";
+  const showCompare = host.dataset.karsilastir === "1";
+  let P, k, choices, choice, answers = [], sim = {};
+  host.classList.add("mx");
+  keepTouch(host);
+  host.addEventListener("keydown", e => {
+    if (e.target.closest("button, select") && (e.key === " " || e.key === "Enter" || e.key.startsWith("Arrow"))) e.stopPropagation();
+  });
+
+  function load(pr) {
+    P = pr;
+    const n = P.vars.length;
+    k = exercise ? n - 1 : +(host.dataset.secme || n - 1);
+    choices = combosOf(n, k);
+    const pref = (host.dataset.secim || "").split(",").map(s => s.trim()).filter(Boolean);
+    const pi = choices.findIndex(c => c.map(i => P.vars[i]).join(",") === pref.join(","));
+    choice = pi >= 0 ? pi : 0;
+    answers = [];
+    sim = {};
+    P.vars.forEach(v => sim[v] = 0);
+    build();
+  }
+
+  function build() {
+    host.replaceChildren();
+    const sel = choices[choice];
+    const N = 1 << k;
+    const res = [...Array(N).keys()].map(code => residual(P.vars, P.on, P.dc, sel, code));
+
+    // fonksiyon + seçim
+    const top = el("div", "mx-top");
+    const f = el("div", "km-func");
+    let fsrc = "F(" + P.vars.join(",") + ") = \\textstyle\\sum m(" + [...P.on].sort((a, b) => a - b).join(",") + ")";
+    if (P.dc.size) fsrc += " + \\textstyle\\sum d(" + [...P.dc].sort((a, b) => a - b).join(",") + ")";
+    tex(f, fsrc);
+    top.append(f);
+    if (exercise) {
+      const nb = el("button", "btn", TEXT.newProblem);
+      nb.addEventListener("click", () => load(randomMuxProblem()));
+      top.append(nb);
+    }
+    host.append(top);
+
+    const selRow = el("div", "mx-sel");
+    selRow.append(el("span", "mx-lbl", "Seçme girişleri " + [...Array(k).keys()].map(i => "S" + subd(k - 1 - i)).join("") + " ="));
+    const seg = el("div", "seg chips");
+    choices.forEach((c, ci) => {
+      const b = el("button", null, c.map(i => P.vars[i]).join(""));
+      b.type = "button";
+      b.setAttribute("aria-pressed", ci === choice ? "true" : "false");
+      b.addEventListener("click", () => { choice = ci; answers = []; build(); });
+      seg.append(b);
+    });
+    selRow.append(seg);
+    const remNames = res[0].names;
+    selRow.append(el("span", "mx-lbl", remNames.length ? "Veri değişkeni: " + remNames.join(", ") : "Tüm değişkenler seçmede"));
+    host.append(selRow);
+
+    // uygulama tablosu
+    const row = el("div", "mx-row");
+    const t = el("table", "mx-t");
+    const hr = el("tr");
+    hr.append(el("th", null, "Giriş"), el("th", null, sel.map(i => P.vars[i]).join("")));
+    const r = remNames.length;
+    for (let j = 0; j < (1 << r); j++) hr.append(el("th", "c", r ? remNames.join("") + "=" + j.toString(2).padStart(r, "0") : ""));
+    hr.append(el("th", null, "Veri girişi"));
+    t.append(hr);
+    const rowEls = [], exEls = [];
+    res.forEach((rs, code) => {
+      const tr = el("tr");
+      tr.append(el("td", "in", "I" + subd(code)), el("td", "code", code.toString(2).padStart(k, "0")));
+      rs.cells.forEach(c => {
+        const td = el("td", "m " + (c.v === 1 ? "on" : c.v === "X" ? "dc" : "off"));
+        td.append(el("span", null, c.m));
+        if (c.v === "X") td.title = "önemsiz";
+        tr.append(td);
+      });
+      const ex = el("td", "ex");
+      if (exercise) {
+        const s = document.createElement("select");
+        s.setAttribute("aria-label", "I" + code + " veri girişi");
+        const v = remNames[0];
+        [["", "seçin"], ["0", "0"], ["1", "1"], [v, v], [v + "'", v + "'"]].forEach(([val, txt]) => {
+          const o = document.createElement("option"); o.value = val; o.textContent = txt; s.append(o);
+        });
+        s.value = answers[code] || "";
+        s.addEventListener("change", () => { answers[code] = s.value; tr.classList.remove("ok", "bad"); drawMux(); });
+        ex.append(s);
+      } else {
+        tex(ex, resTex(rs));
+      }
+      tr.append(ex);
+      t.append(tr);
+      rowEls.push(tr);
+      exEls.push(ex);
+    });
+    const left = el("div", "mx-left");
+    left.append(t);
+    if (!exercise) left.append(el("p", "mx-cost", "Bu seçimde veri girişleri için ek kapı: " + muxCost(res).text + "."));
+
+    // deneme
+    const tryRow = el("div", "mx-try");
+    tryRow.append(el("span", "mx-lbl", "Deneyin:"));
+    const bits = {};
+    P.vars.forEach(v => {
+      const b = el("button", "bit");
+      b.type = "button";
+      b.title = v;
+      b.addEventListener("click", () => { sim[v] ^= 1; updateTry(); });
+      const wrap = el("span", "mx-bit");
+      wrap.append(el("span", null, v), b);
+      tryRow.append(wrap);
+      bits[v] = b;
+    });
+    const tryOut = el("span", "mx-out");
+    tryRow.append(tryOut);
+    left.append(tryRow);
+    row.append(left);
+
+    const svg = sv("svg", { class: "devre mx-svg", role: "img" });
+    row.append(svg);
+    host.append(row);
+
+    function labelsNow() {
+      return res.map((rs, code) => exercise ? (answers[code] || "?") : resPlain(rs));
+    }
+    function drawMux() {
+      svg.replaceChildren();
+      drawCircuit(svg, muxSpec(k, sel.map(i => P.vars[i]), labelsNow(), "F"));
+      svg.setAttribute("aria-label", (1 << k) + "×1 çoklayıcı; seçme " + sel.map(i => P.vars[i]).join(", ") + "; girişler " + labelsNow().join(", "));
+    }
+    function updateTry() {
+      P.vars.forEach(v => { bits[v].textContent = sim[v]; bits[v].setAttribute("aria-pressed", sim[v] ? "true" : "false"); });
+      const code = sel.reduce((a, i) => a * 2 + sim[P.vars[i]], 0);
+      const j = remNames.reduce((a, nm) => a * 2 + sim[nm], 0);
+      const m = P.vars.reduce((a, v) => a * 2 + sim[v], 0);
+      rowEls.forEach((tr, c) => {
+        tr.classList.toggle("now", c === code);
+        [...tr.querySelectorAll("td.m")].forEach((td, jj) => td.classList.toggle("cur", c === code && jj === j));
+      });
+      const val = P.on.has(m) ? "1" : P.dc.has(m) ? "X" : "0";
+      tryOut.textContent = `minterm ${m}: I${subd(code)} seçilir, F = ${val}`;
+    }
+    drawMux();
+    updateTry();
+
+    // kontrol (alıştırma)
+    if (exercise) {
+      const bar = el("div", "km-bar");
+      const chk = el("button", "btn primary", "Kontrol et");
+      const shw = el("button", "link", "Cevabı göster");
+      const msg = el("p", "msg");
+      msg.setAttribute("aria-live", "polite");
+      bar.append(chk, shw);
+      host.append(bar, msg);
+      const okSet = rs => {
+        const v = rs.names[0], cands = { "0": [0, 0], "1": [1, 1], [v]: [0, 1], [v + "'"]: [1, 0] };
+        return Object.keys(cands).filter(key => rs.cells.every((c, jj) => c.v === "X" || c.v === cands[key][jj]));
+      };
+      chk.addEventListener("click", () => {
+        let wrong = 0, empty = 0;
+        res.forEach((rs, code) => {
+          const a = answers[code] || "";
+          rowEls[code].classList.remove("ok", "bad");
+          if (!a) { empty++; return; }
+          const good = okSet(rs).includes(a);
+          rowEls[code].classList.add(good ? "ok" : "bad");
+          if (!good) wrong++;
+        });
+        if (empty) { msg.textContent = `${empty} veri girişi henüz seçilmedi.`; msg.className = "msg err"; }
+        else if (wrong) { msg.textContent = `${wrong} veri girişi yanlış (kırmızı). Satırdaki daireli mintermlere tekrar bakın.`; msg.className = "msg err"; }
+        else { msg.textContent = "Doğru! Çoklayıcı devresi tamam."; msg.className = "msg ok"; }
+      });
+      shw.addEventListener("click", () => {
+        res.forEach((rs, code) => { answers[code] = okSet(rs)[0]; });
+        build();
+        host.querySelector(".msg").textContent = "Doğru cevap yerleştirildi.";
+        host.querySelector(".msg").className = "msg info";
+      });
+    }
+
+    // tüm seçimlerin karşılaştırması
+    if (showCompare && !exercise) {
+      const box = el("div", "mx-cmp");
+      box.append(el("div", "mx-lbl", "Tüm seçimler (satıra tıklayıp seçin)"));
+      const ct = el("table", "mx-t cmp");
+      const h = el("tr");
+      h.append(el("th", null, "Seçme"));
+      for (let c = 0; c < N; c++) h.append(el("th", null, "I" + subd(c)));
+      h.append(el("th", null, "Ek kapı"));
+      ct.append(h);
+      const costs = choices.map(c => muxCost([...Array(N).keys()].map(code => residual(P.vars, P.on, P.dc, c, code))).total);
+      const best = Math.min(...costs);
+      choices.forEach((c, ci) => {
+        const rr = [...Array(N).keys()].map(code => residual(P.vars, P.on, P.dc, c, code));
+        const tr = el("tr", ci === choice ? "now" : "");
+        tr.tabIndex = 0;
+        tr.addEventListener("click", () => { choice = ci; answers = []; build(); });
+        tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); choice = ci; build(); } });
+        tr.append(el("td", "in", c.map(i => P.vars[i]).join("")));
+        rr.forEach(rs => { const td = el("td"); tex(td, resTex(rs)); tr.append(td); });
+        const cost = muxCost(rr);
+        const td = el("td", "cost" + (cost.total === best ? " best" : ""), cost.text);
+        tr.append(td);
+        ct.append(tr);
+      });
+      box.append(ct);
+      host.append(box);
+    }
+  }
+
+  if (host.dataset.random === "1") load(randomMuxProblem());
+  else load({ vars: host.dataset.vars.split(",").map(s => s.trim()), on: new Set(nums(host.dataset.minterms)), dc: new Set(nums(host.dataset.dontcares)) });
+}
+
+/* ===================== ADIM ADIM ALIŞTIRMALAR ===================== */
+const VAR_NAMES = ["A", "B", "C", "D"];
+function randomFunc() {
+  for (let t = 0; t < 400; t++) {
+    const n = Math.random() < 0.5 ? 3 : 4, N = 1 << n, on = new Set();
+    for (let m = 0; m < N; m++) if (Math.random() < 0.45) on.add(m);
+    if (on.size < 3 || on.size > N - 2) continue;
+    const best = minimalCover(n, on, new Set());
+    if (best.count < 2 || best.count > 4) continue;
+    return { vars: VAR_NAMES.slice(0, n), n, on, cover: best.cover };
+  }
+  return { vars: ["A", "B", "C"], n: 3, on: new Set([0, 3, 4, 5]), cover: minimalCover(3, new Set([0, 3, 4, 5]), new Set()).cover };
+}
+const funcTex = P => "F(" + P.vars.join(",") + ") = " + P.cover.map(c => prodTex(P, litsOf(c, P.n, false))).join(" + ");
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const setEq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+
+function bitButtons(row, names, state, onChange) {
+  const btns = {};
+  names.forEach(v => {
+    const w = el("span", "mx-bit");
+    const b = el("button", "bit");
+    b.type = "button";
+    b.addEventListener("click", () => { state[v] ^= 1; paint(); onChange(); });
+    w.append(el("span", null, uni(v)), b);
+    row.append(w);
+    btns[v] = b;
+  });
+  function paint() { names.forEach(v => { btns[v].textContent = state[v]; btns[v].setAttribute("aria-pressed", state[v] ? "true" : "false"); }); }
+  paint();
+}
+
+// Ortak iskelet: adım çubuğu, açıklama, gövde, Kontrol et / Sonraki adım / Cevabı göster
+function setupWizard(host, make, steps) {
+  host.classList.add("wz");
+  keepTouch(host);
+  host.addEventListener("keydown", e => {
+    if (e.key === "Escape") { document.activeElement.blur(); e.stopPropagation(); return; }
+    if (e.target.closest("button, select, td.tik") && (e.key === " " || e.key === "Enter")) {
+      if (e.target.matches("td.tik")) { e.preventDefault(); e.target.click(); }
+      e.stopPropagation();
+    }
+  });
+  let st, cur, done;
+  function fresh() { st = make(); cur = 0; done = []; draw(); }
+  function draw(after) {
+    host.replaceChildren();
+    const S = steps[cur], last = steps.length - 1;
+    const top = el("div", "wz-top");
+    const desc = el("div", "wz-desc");
+    st.describe(desc);
+    const nb = el("button", "btn", TEXT.newProblem);
+    nb.addEventListener("click", fresh);
+    top.append(desc, nb);
+    const bar0 = el("ol", "steps");
+    steps.forEach((s, i) => {
+      const li = el("li", i < cur || done[i] && i !== cur ? "done" : i === cur ? "now" : "");
+      li.append(el("span", "n", done[i] ? "✓" : i + 1), document.createTextNode(s.name));
+      if (i <= cur || done[i - 1]) {
+        li.classList.add("git");
+        li.tabIndex = 0;
+        li.addEventListener("click", () => { if (i !== cur && (i < cur || done[i - 1])) { cur = i; draw(); } });
+        li.addEventListener("keydown", e => { if (e.key === "Enter") li.click(); });
+      }
+      bar0.append(li);
+    });
+    const help = el("p", "km-help wz-help");
+    help.innerHTML = S.help(st);
+    const body = el("div", "wz-body");
+    const bar = el("div", "km-bar");
+    const chk = el("button", "btn primary", "Kontrol et");
+    const nxt = el("button", "btn", "Sonraki adım →");
+    const shw = el("button", "link", "Cevabı göster");
+    const msg = el("p", "msg");
+    msg.setAttribute("aria-live", "polite");
+    if (!S.internal && !S.final) bar.append(chk);
+    if (cur < last) bar.append(nxt);
+    if (!S.internal && !S.final) bar.append(shw);
+    host.append(top, bar0, help, body, bar, msg);
+    if (window.renderMathInElement) renderMathInElement(help, { delimiters: [{ left: "$", right: "$", display: false }], throwOnError: false });
+    const say = (t, kind) => { msg.textContent = t || ""; msg.className = "msg" + (kind ? " " + kind : ""); };
+    const ok = m => { done[cur] = true; say(m || "Doğru.", "ok"); nxt.disabled = false; bar0.children[cur].querySelector(".n").textContent = "✓"; };
+    const api = { ok, say, redraw: () => draw() };
+    S.render(body, st, api);
+    if (S.final) done[cur] = true;
+    nxt.disabled = !done[cur];
+    chk.addEventListener("click", () => { const r = S.check(st); if (r.ok) ok(r.msg); else say(r.msg, "err"); });
+    shw.addEventListener("click", () => { S.show(st); done[cur] = true; draw({ text: "Cevap yerleştirildi. " + (S.after ? S.after(st) : ""), kind: "info" }); });
+    nxt.addEventListener("click", () => { cur++; draw(); });
+    if (after) say(after.text, after.kind);
+    if (window.renderMathInElement) renderMathInElement(msg, { delimiters: [{ left: "$", right: "$", display: false }], throwOnError: false });
+  }
+  fresh();
+}
+
+/* ---------- Kod çözücüyle rastgele fonksiyon ---------- */
+function decSpec(P, conn, gate) {
+  const n = P.n, N = 1 << n, pitch = n === 3 ? 26 : 16, bh = N * pitch + 8, bx = 70, by = 14;
+  const blocks = [{ id: "d", x: bx, y: by, w: 84, h: bh, label: n + "×" + N + "\nkod\nçözücü", pins: [
+    ...P.vars.map((v, i) => ({ n: v, side: "left", at: (i + 1) / (n + 1) })),
+    ...[...Array(N).keys()].map(k => ({ n: "D" + k, side: "right", at: (k + 0.5) / N, lbl: String(k) }))] }];
+  const terms = P.vars.map((v, i) => ({ id: "in" + v, x: 34, y: by + bh * (i + 1) / (n + 1), s: v, a: "end", dx: -6 }));
+  const wires = P.vars.map(v => ["in" + v, "d." + v]);
+  const gates = [], lines = [];
+  const list = [...conn].sort((a, b) => a - b);
+  const k = Math.max(list.length, 1), gh = Math.max(24, hOf(k)), gx = 290;
+  const gy = Math.max(by, by + bh / 2 - gh / 2);
+  if (gate && list.length) {
+    gates.push({ id: "g", t: gate, n: list.length, h: gh, x: gx, y: gy });
+    list.forEach((d, j) => wires.push(["d.D" + d, "g.i" + j, { mx: 178 + j * 7 }]));
+    terms.push({ id: "F", x: outXOf(gate, gx, gh) + 34, y: gy + gh / 2, s: "F", a: "start", dx: 6 });
+    wires.push(["g.o", "F"]);
+  }
+  for (let d = 0; d < N; d++) if (!conn.has(d)) lines.push(`M${bx + 84} ${by + bh * (d + 0.5) / N}H${bx + 98}`);
+  return { w: 420, h: Math.max(by + bh, gy + gh) + 18, blocks, terms, wires, gates, lines };
+}
+
+function setupDecoderDrill(host) {
+  setupWizard(host, () => {
+    const P = randomFunc();
+    P.fill = new Set(); P.gate = null; P.conn = new Set(); P.sim = {};
+    P.vars.forEach(v => P.sim[v] = 0);
+    P.zeros = new Set([...Array(1 << P.n).keys()].filter(m => !P.on.has(m)));
+    P.describe = d => {
+      const f = el("div", "km-func"); tex(f, funcTex(P));
+      d.append(f, el("p", null, `Bu fonksiyonu bir ${P.n}×${1 << P.n} kod çözücü ve tek bir kapıyla gerçekleyin.`));
+    };
+    return P;
+  }, [
+    { name: "Mintermleri bul",
+      help: P => "İfadeyi her satırda hesaplayın ve $F$ sütununa 1 yazın (hücreye tıklayın). Her çarpım terimi, değişkenlerinin sabit olduğu satırlarda 1'dir.",
+      render(body, P) {
+        const N = 1 << P.n, per = N > 8 ? 8 : N;
+        for (let c = 0; c < N / per; c++) {
+          const t = el("table", "dt wz-tt");
+          const hr = el("tr");
+          P.vars.forEach(v => hr.append(el("th", null, v)));
+          hr.append(el("th", null, "m"), el("th", "o", "F"));
+          t.append(hr);
+          for (let m = c * per; m < (c + 1) * per; m++) {
+            const tr = el("tr");
+            P.vars.forEach((_, i) => tr.append(el("td", null, (m >> (P.n - 1 - i)) & 1)));
+            tr.append(el("td", "mm", m));
+            const td = el("td", "o tik" + (P.fill.has(m) ? " one" : ""), P.fill.has(m) ? "1" : "0");
+            td.tabIndex = 0;
+            td.setAttribute("role", "button");
+            td.setAttribute("aria-label", "minterm " + m + ", F = " + (P.fill.has(m) ? 1 : 0));
+            td.addEventListener("click", () => {
+              if (P.fill.has(m)) P.fill.delete(m); else P.fill.add(m);
+              td.textContent = P.fill.has(m) ? "1" : "0"; td.classList.toggle("one", P.fill.has(m));
+              t.querySelectorAll("td.bad").forEach(x => x.classList.remove("bad"));
+            });
+            tr.append(td);
+            t.append(tr);
+          }
+          body.append(t);
+        }
+      },
+      check(P) {
+        if (setEq(P.fill, P.on)) return { ok: true, msg: `Doğru: $F = \\sum m(${[...P.on].sort((a, b) => a - b).join(",")})$.` };
+        const wrong = [...Array(1 << P.n).keys()].filter(m => P.fill.has(m) !== P.on.has(m)).length;
+        return { ok: false, msg: `${wrong} satır yanlış. Terimleri tek tek kontrol edin: her terim hangi satırlarda 1?` };
+      },
+      show(P) { P.fill = new Set(P.on); }
+    },
+    { name: "Kapıyı seç",
+      help: P => "Kod çözücü her mintermi bir çıkışta üretir. $F$, 1 olduğu çıkışların VEYA'sı ya da 0 olduğu çıkışların VEYADEĞİL'i olarak yazılabilir. Daha az girişli olanı seçin.",
+      render(body, P) {
+        const box = el("div", "wz-opts");
+        [["or", `VEYA kapısı: F'nin 1 olduğu ${P.on.size} çıkış`, `F = D_{${[...P.on].sort((a, b) => a - b).join("}+D_{")}}`],
+         ["nor", `VEYADEĞİL kapısı: F'nin 0 olduğu ${P.zeros.size} çıkış`, `F = \\overline{D_{${[...P.zeros].sort((a, b) => a - b).join("}+D_{")}}}`]].forEach(([g, t, f]) => {
+          const b = el("button", "opt");
+          b.type = "button";
+          b.setAttribute("aria-pressed", P.gate === g ? "true" : "false");
+          b.append(el("span", "opt-t", t));
+          const fx = el("span", "opt-f"); tex(fx, f); b.append(fx);
+          b.addEventListener("click", () => { P.gate = g; box.querySelectorAll(".opt").forEach(o => o.setAttribute("aria-pressed", "false")); b.setAttribute("aria-pressed", "true"); });
+          box.append(b);
+        });
+        body.append(box);
+      },
+      check(P) {
+        if (!P.gate) return { ok: false, msg: "Önce bir kapı seçin." };
+        const cnt = P.gate === "or" ? P.on.size : P.zeros.size, other = P.gate === "or" ? P.zeros.size : P.on.size;
+        if (cnt <= other) return { ok: true, msg: cnt === other ? "İkisi de aynı sayıda giriş ister; bu seçim de doğru." : `Doğru: ${cnt} girişli kapı, ${other} girişliden ucuz.` };
+        return { ok: false, msg: `Bu kapı ${cnt} giriş ister; diğeri yalnızca ${other}. Sonuç yine doğru olurdu, ama daha pahalı.` };
+      },
+      show(P) { P.gate = P.on.size <= P.zeros.size ? "or" : "nor"; }
+    },
+    { name: "Çıkışları bağla",
+      help: P => P.gate === "or" ? "VEYA kapısına, $F$'nin 1 olduğu mintermlerin çıkışlarını bağlayın (aşağıdaki numaralara tıklayın)." : "VEYADEĞİL kapısına, $F$'nin 0 olduğu mintermlerin çıkışlarını bağlayın (aşağıdaki numaralara tıklayın).",
+      render(body, P) {
+        const col = el("div", "wz-col");
+        const chips = el("div", "seg chips wz-chips");
+        const svg = sv("svg", { class: "devre wz-svg", role: "img", "aria-label": "Kod çözücü ve kapı" });
+        const draw = () => { svg.replaceChildren(); drawCircuit(svg, decSpec(P, P.conn, P.gate || "or")); };
+        [...Array(1 << P.n).keys()].forEach(d => {
+          const b = el("button", null, "D" + subd(d));
+          b.type = "button";
+          b.setAttribute("aria-pressed", P.conn.has(d) ? "true" : "false");
+          b.addEventListener("click", () => { if (P.conn.has(d)) P.conn.delete(d); else P.conn.add(d); b.setAttribute("aria-pressed", P.conn.has(d) ? "true" : "false"); draw(); });
+          chips.append(b);
+        });
+        col.append(chips, svg);
+        body.append(col);
+        draw();
+      },
+      check(P) {
+        const target = P.gate === "or" ? P.on : P.zeros;
+        if (setEq(P.conn, target)) return { ok: true, msg: "Doğru bağlantı. Son adımda devreyi deneyin." };
+        const extra = [...P.conn].filter(d => !target.has(d)).length, miss = [...target].filter(d => !P.conn.has(d)).length;
+        return { ok: false, msg: `${miss} eksik, ${extra} fazla bağlantı var.` };
+      },
+      show(P) { P.conn = new Set(P.gate === "or" ? P.on : P.zeros); }
+    },
+    { name: "Deneyin", final: true,
+      help: P => "Girişleri değiştirin: kod çözücünün hangi çıkışının 1 olduğunu ve kapının çıkışını izleyin. Devre her girişte fonksiyonla aynı değeri vermeli.",
+      render(body, P) {
+        const col = el("div", "wz-col");
+        const row = el("div", "mx-try");
+        const out = el("p", "mx-out");
+        const svg = sv("svg", { class: "devre wz-svg", role: "img", "aria-label": "Tamamlanmış devre" });
+        drawCircuit(svg, decSpec(P, P.conn, P.gate || "or"));
+        const upd = () => {
+          const m = P.vars.reduce((a, v) => a * 2 + P.sim[v], 0);
+          const g = P.gate === "nor" ? (P.conn.has(m) ? 0 : 1) : (P.conn.has(m) ? 1 : 0);
+          out.textContent = `D${subd(m)} = 1. Kapı çıkışı ${g}, fonksiyon ${P.on.has(m) ? 1 : 0}: ${g === (P.on.has(m) ? 1 : 0) ? "uyuyor" : "uymuyor"}.`;
+        };
+        bitButtons(row, P.vars, P.sim, upd);
+        col.append(row, out, svg);
+        body.append(col);
+        upd();
+      }
+    }
+  ]);
+}
+
+/* ---------- Öncelikli kodlayıcı ---------- */
+function setupPriorityDrill(host) {
+  setupWizard(host, () => {
+    const n = Math.random() < 0.5 ? 3 : 4;
+    const order = shuffle([...Array(n).keys()]);                 // en yüksek öncelik önce
+    const names = [...Array(n).keys()].map(i => "D_" + (n - 1 - i));   // en anlamlı bit önce
+    const win = m => order.find(i => (m >> i) & 1);
+    const xs = [], ys = [], vs = [];
+    for (let m = 1; m < (1 << n); m++) { const w = win(m); if ((w >> 1) & 1) xs.push(m); if (w & 1) ys.push(m); vs.push(m); }
+    // sıkıştırılmış tablo: hiçbiri, sonra en düşük öncelikliden en yükseğe
+    const rows = [{ pat: [...Array(n).keys()].map(() => 0), x: "X", y: "X", V: "0" }];
+    [...order].reverse().forEach(w => {
+      const r = order.indexOf(w);
+      rows.push({ pat: [...Array(n).keys()].map(i => i === w ? 1 : order.indexOf(i) < r ? 0 : "X"), x: String((w >> 1) & 1), y: String(w & 1), V: "1", w });
+    });
+    const P = { n, order, names, xs, ys, vs, rows, fill: rows.map(() => ({ x: "", y: "", V: "" })), sim: {} };
+    names.forEach(v => P.sim[v] = 0);
+    P.F = { vars: names, outs: [{ name: "x", on: xs, dc: [0] }, { name: "y", on: ys, dc: [0] }, { name: "V", on: vs }] };
+    P.describe = d => {
+      const f = el("div", "km-func");
+      tex(f, "\\text{Öncelik: }" + order.map(i => "D_" + i).join(" > "));
+      d.append(f, el("p", null, `${n} girişli öncelikli kodlayıcı. Çıkış kodu xy, 1 olan en yüksek öncelikli girişin numarasıdır (D₂ → 10). V, en az bir giriş 1 olduğunda 1'dir.`));
+    };
+    return P;
+  }, [
+    { name: "Tabloyu doldur",
+      help: P => "Her satırda kazanan giriş 1'dir; ondan yüksek öncelikliler 0, düşük öncelikliler X'tir (önemsiz). Çıkış hücrelerine tıklayarak 0, 1 ya da X yazın.",
+      render(body, P) {
+        const t = el("table", "dt wz-tt");
+        const hr = el("tr");
+        P.names.forEach(v => { const th = el("th"); tex(th, v); hr.append(th); });
+        ["x", "y", "V"].forEach(o => { const th = el("th", "o"); tex(th, o); hr.append(th); });
+        t.append(hr);
+        P.rows.forEach((r, ri) => {
+          const tr = el("tr");
+          for (let i = P.n - 1; i >= 0; i--) tr.append(el("td", r.pat[i] === "X" ? "x" : null, r.pat[i]));
+          ["x", "y", "V"].forEach(o => {
+            const td = el("td", "o tik", P.fill[ri][o] || "·");
+            td.tabIndex = 0;
+            td.setAttribute("role", "button");
+            td.addEventListener("click", () => {
+              const seq = ["", "0", "1", "X"];
+              P.fill[ri][o] = seq[(seq.indexOf(P.fill[ri][o]) + 1) % 4];
+              td.textContent = P.fill[ri][o] || "·";
+              tr.classList.remove("bad");
+            });
+            tr.append(td);
+          });
+          tr.dataset.ri = ri;
+          t.append(tr);
+        });
+        body.append(t);
+      },
+      check(P) {
+        let wrong = 0;
+        P.rows.forEach((r, ri) => {
+          const f = P.fill[ri];
+          const bad = f.x !== r.x || f.y !== r.y || f.V !== r.V;
+          if (bad) wrong++;
+          const tr = document.querySelector(`section.present .wz-tt tr[data-ri="${ri}"]`);
+          if (tr) tr.classList.toggle("bad", bad);
+        });
+        return wrong ? { ok: false, msg: `${wrong} satırda hata var (kırmızı). Hiçbir giriş yokken x ve y önemsizdir (X), V = 0.` }
+                     : { ok: true, msg: "Tablo doğru. Şimdi x ve y için haritaları çözün; hiç giriş olmayan durum (minterm 0) önemsizdir." };
+      },
+      show(P) { P.rows.forEach((r, ri) => P.fill[ri] = { x: r.x, y: r.y, V: r.V }); }
+    },
+    { name: "x haritası", internal: true,
+      help: P => "Tablodaki her satır birçok minterme karşılık gelir (X'ler 0 ya da 1 olabilir). $x = 1$ olan bütün mintermleri işaretleyin, minterm 0'a X yazın ve gruplayın.",
+      render(body, P, api) {
+        const k = el("div", "kmap");
+        k.dataset.vars = P.names.join(","); k.dataset.minterms = P.xs.join(","); k.dataset.dontcares = "0";
+        body.append(k);
+        setupKmap(k, { name: "x", onSolved: () => api.ok("x tamam.") });
+      }
+    },
+    { name: "y haritası", internal: true,
+      help: P => "Aynı yöntemle $y$: kazanan girişin numarasının en düşük biti 1 olan mintermler.",
+      render(body, P, api) {
+        const k = el("div", "kmap");
+        k.dataset.vars = P.names.join(","); k.dataset.minterms = P.ys.join(","); k.dataset.dontcares = "0";
+        body.append(k);
+        setupKmap(k, { name: "y", onSolved: () => api.ok("y tamam.") });
+      }
+    },
+    { name: "Devre", final: true,
+      help: P => "$V$ tüm girişlerin VEYA'sıdır. Devreyi VE–VEYA, yalnız VEDEĞİL ya da yalnız VEYADEĞİL olarak görün ve girişleri deneyin.",
+      render(body, P) {
+        const id = "__oncelik";
+        FUNCS[id] = P.F;
+        const v = el("div"); v.dataset.ifade = id;
+        const col = el("div", "wz-col");
+        const row = el("div", "mx-try"), out = el("p", "mx-out");
+        const upd = () => {
+          const m = P.names.reduce((a, nm) => a * 2 + P.sim[nm], 0);
+          if (!m) { out.textContent = "Hiç giriş yok: V = 0, x ve y önemsiz."; return; }
+          const w = P.order.find(i => (m >> i) & 1);
+          out.textContent = `Kazanan D${subd(w)}: xy = ${(w >> 1) & 1}${w & 1}, V = 1.`;
+        };
+        bitButtons(row, P.names, P.sim, upd);
+        col.append(row, out, v);
+        body.append(col);
+        setupView(v);
+        upd();
+      }
+    }
+  ]);
+}
+
+/* ---------- Çoklayıcı ---------- */
+function implTable(P, sel, mode, onCell) {
+  // mode: "circle" (öğrenci daire çizer) | "answer" (daireler gösterilir, girişler seçilir)
+  const k = sel.length, N = 1 << k;
+  const res = [...Array(N).keys()].map(code => residual(P.vars, P.on, new Set(), sel, code));
+  const names = res[0].names, r = names.length;
+  const t = el("table", "mx-t");
+  const hr = el("tr");
+  hr.append(el("th", null, "Giriş"), el("th", null, sel.map(i => P.vars[i]).join("")));
+  for (let j = 0; j < (1 << r); j++) hr.append(el("th", "c", names.join("") + "=" + j.toString(2).padStart(r, "0")));
+  if (mode === "answer") hr.append(el("th", null, "Veri girişi"));
+  t.append(hr);
+  const rowEls = [];
+  res.forEach((rs, code) => {
+    const tr = el("tr");
+    tr.dataset.code = code;
+    tr.append(el("td", "in", "I" + subd(code)), el("td", "code", code.toString(2).padStart(k, "0")));
+    rs.cells.forEach(c => {
+      const circled = mode === "circle" ? P.circ.has(c.m) : P.on.has(c.m);
+      const td = el("td", "m " + (circled ? "on" : "off") + (mode === "circle" ? " tik" : ""));
+      td.append(el("span", null, c.m));
+      if (mode === "circle") {
+        td.tabIndex = 0;
+        td.setAttribute("role", "button");
+        td.setAttribute("aria-label", "minterm " + c.m);
+        td.addEventListener("click", () => { onCell(c.m); td.classList.toggle("on", P.circ.has(c.m)); td.classList.toggle("off", !P.circ.has(c.m)); td.classList.remove("bad"); });
+      }
+      tr.append(td);
+    });
+    if (mode === "answer") {
+      const ex = el("td", "ex");
+      const s = document.createElement("select");
+      s.setAttribute("aria-label", "I" + code + " veri girişi");
+      const v = names[0];
+      [["", "seçin"], ["0", "0"], ["1", "1"], [v, v], [v + "'", v + "'"]].forEach(([val, txt]) => { const o = document.createElement("option"); o.value = val; o.textContent = txt; s.append(o); });
+      s.value = P.answers[code] || "";
+      s.addEventListener("change", () => { P.answers[code] = s.value; tr.classList.remove("ok", "bad"); if (onCell) onCell(); });
+      ex.append(s);
+      tr.append(ex);
+    }
+    t.append(tr);
+    rowEls.push(tr);
+  });
+  return { t, res, rowEls, names };
+}
+const muxOkSet = rs => {
+  const v = rs.names[0], cands = { "0": [0, 0], "1": [1, 1], [v]: [0, 1], [v + "'"]: [1, 0] };
+  return Object.keys(cands).filter(key => rs.cells.every((c, j) => c.v === "X" || c.v === cands[key][j]));
+};
+
+function setupMuxDrill(host) {
+  setupWizard(host, () => {
+    const P = randomFunc();
+    P.k = P.n - 1; P.choices = combosOf(P.n, P.k); P.choice = null; P.circ = new Set(); P.answers = []; P.sim = {};
+    P.vars.forEach(v => P.sim[v] = 0);
+    P.describe = d => {
+      const f = el("div", "km-func"); tex(f, funcTex(P));
+      d.append(f, el("p", null, `Bu fonksiyonu bir ${1 << P.k}×1 çoklayıcıyla gerçekleyin: ${P.k} değişken seçme girişlerine, kalan değişken veri girişlerine gider.`));
+    };
+    return P;
+  }, [
+    { name: "Seçme girişleri",
+      help: P => "Seçme girişlerine gidecek değişkenleri seçin. Her seçim doğru bir devre verir; seçimler yalnızca veri girişlerinin ne kadar basit olacağıyla ayrılır.",
+      render(body, P) {
+        const seg = el("div", "seg chips");
+        P.choices.forEach((c, ci) => {
+          const b = el("button", null, c.map(i => P.vars[i]).join(""));
+          b.type = "button";
+          b.setAttribute("aria-pressed", P.choice === ci ? "true" : "false");
+          b.addEventListener("click", () => { P.choice = ci; P.circ = new Set(); P.answers = []; seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false")); b.setAttribute("aria-pressed", "true"); });
+          seg.append(b);
+        });
+        const lbl = el("span", "mx-lbl", "Seçme girişleri:");
+        const row = el("div", "mx-sel"); row.append(lbl, seg);
+        body.append(row);
+      },
+      check(P) {
+        if (P.choice == null) return { ok: false, msg: "Önce bir seçim yapın." };
+        const sel = P.choices[P.choice], rest = P.vars.filter((_, i) => !sel.includes(i));
+        return { ok: true, msg: `Seçme: ${sel.map(i => P.vars[i]).join(", ")}; veri değişkeni ${rest[0]}. Şimdi uygulama tablosunu kurun.` };
+      },
+      show(P) {
+        const costs = P.choices.map(c => muxCost([...Array(1 << P.k).keys()].map(code => residual(P.vars, P.on, new Set(), c, code))).total);
+        P.choice = costs.indexOf(Math.min(...costs));
+      },
+      after: P => "En az ek kapı gerektiren seçim yapıldı."
+    },
+    { name: "Mintermleri işaretle",
+      help: P => "Tabloda her satır bir veri girişi, her sütun veri değişkeninin bir değeridir. $F = 1$ olan mintermlere tıklayıp daire içine alın: ifadenin her terimini tek tek değerlendirin.",
+      render(body, P) {
+        const { t } = implTable(P, P.choices[P.choice], "circle", m => { if (P.circ.has(m)) P.circ.delete(m); else P.circ.add(m); });
+        body.append(t);
+      },
+      check(P) {
+        if (setEq(P.circ, P.on)) return { ok: true, msg: `Doğru: $F = \\sum m(${[...P.on].sort((a, b) => a - b).join(",")})$.` };
+        document.querySelectorAll("section.present .mx-t td.tik").forEach(td => {
+          const m = +td.textContent; td.classList.toggle("bad", P.circ.has(m) !== P.on.has(m));
+        });
+        return { ok: false, msg: "Yanlış işaretli mintermler kırmızı çerçeveli." };
+      },
+      show(P) { P.circ = new Set(P.on); }
+    },
+    { name: "Veri girişleri",
+      help: P => "Her satırı okuyun: iki minterm de daireli ise $1$, hiçbiri değilse $0$; yalnız veri değişkeni 1 iken daireliyse o değişken, yalnız 0 iken daireliyse tümleyeni.",
+      render(body, P) {
+        const sel = P.choices[P.choice];
+        const row = el("div", "mx-row");
+        const svg = sv("svg", { class: "devre mx-svg", role: "img", "aria-label": "Çoklayıcı" });
+        const draw = () => { svg.replaceChildren(); drawCircuit(svg, muxSpec(P.k, sel.map(i => P.vars[i]), [...Array(1 << P.k).keys()].map(c => P.answers[c] || "?"), "F")); };
+        const { t } = implTable(P, sel, "answer", draw);
+        row.append(t, svg);
+        body.append(row);
+        draw();
+      },
+      check(P) {
+        const sel = P.choices[P.choice];
+        let wrong = 0, empty = 0;
+        [...Array(1 << P.k).keys()].forEach(code => {
+          const rs = residual(P.vars, P.on, new Set(), sel, code), a = P.answers[code] || "";
+          const tr = document.querySelector(`section.present .mx-t tr[data-code="${code}"]`);
+          if (!a) { empty++; return; }
+          const good = muxOkSet(rs).includes(a);
+          if (!good) wrong++;
+          if (tr) { tr.classList.toggle("ok", good); tr.classList.toggle("bad", !good); }
+        });
+        if (empty) return { ok: false, msg: `${empty} veri girişi henüz seçilmedi.` };
+        return wrong ? { ok: false, msg: `${wrong} veri girişi yanlış (kırmızı).` } : { ok: true, msg: "Bütün veri girişleri doğru." };
+      },
+      show(P) {
+        const sel = P.choices[P.choice];
+        P.answers = [...Array(1 << P.k).keys()].map(code => muxOkSet(residual(P.vars, P.on, new Set(), sel, code))[0]);
+      }
+    },
+    { name: "Deneyin", final: true,
+      help: P => "Girişleri değiştirerek seçilen veri girişini ve çıkışı izleyin. Altta, bu seçimin maliyeti diğer seçimlerle karşılaştırılıyor.",
+      render(body, P) {
+        const sel = P.choices[P.choice];
+        const col = el("div", "wz-col");
+        const row = el("div", "mx-try"), out = el("p", "mx-out");
+        const svg = sv("svg", { class: "devre mx-svg", role: "img", "aria-label": "Tamamlanmış çoklayıcı devresi" });
+        drawCircuit(svg, muxSpec(P.k, sel.map(i => P.vars[i]), P.answers.map(a => a || "?"), "F"));
+        const upd = () => {
+          const m = P.vars.reduce((a, v) => a * 2 + P.sim[v], 0);
+          const code = sel.reduce((a, i) => a * 2 + P.sim[P.vars[i]], 0);
+          out.textContent = `Seçilen I${subd(code)} = ${P.answers[code]}; F(${m}) = ${P.on.has(m) ? 1 : 0}.`;
+        };
+        bitButtons(row, P.vars, P.sim, upd);
+        const costs = P.choices.map(c => ({ c, cost: muxCost([...Array(1 << P.k).keys()].map(code => residual(P.vars, P.on, new Set(), c, code))) }));
+        const mine = costs[P.choice].cost, best = Math.min(...costs.map(x => x.cost.total));
+        const note = el("p", "mx-cost", `Bu seçimde ek kapı: ${mine.text}. ` + costs.map(x => x.c.map(i => P.vars[i]).join("") + ": " + x.cost.text).join("; ") + "." +
+          (mine.total === best ? " Sizin seçiminiz en ucuzlardan biri." : " Daha ucuz bir seçim vardı."));
+        col.append(row, out, svg, note);
+        body.append(col);
+        upd();
+      }
+    }
+  ]);
+}
+
+/* ===================== DENEME PANELLERİ (simülasyon) ===================== */
+const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+const subd = s => String(s).replace(/\d/g, d => SUBS[d]);
+const LBL = { GT: "A>B", EQ: "A=B", LT: "A<B", Elde: "Elde" };
+const lbl = b => LBL[b] || b.replace(/^([A-Za-z]+)(\d+)$/, (_, a, d) => a + subd(d));
+const bv = (v, bits) => bits.reduce((a, b) => a * 2 + (v[b] ? 1 : 0), 0);
+const setBits = (o, bits, n) => { bits.forEach((b, i) => o[b] = (n >> (bits.length - 1 - i)) & 1); return o; };
+const A4 = ["A3", "A2", "A1", "A0"], B4 = ["B3", "B2", "B1", "B0"], S4 = ["S3", "S2", "S1", "S0"];
+const D8 = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"];
+const sgn4 = x => x > 7 ? x - 16 : x;
+
+const SIMS = {
+  analiz: { in: ["A", "B", "C"], out: ["T1", "T2", "F", "G"],
+    f: v => { const T1 = v.A & (1 - v.B), T2 = v.B & v.C; return { T1, T2, F: T1 | T2, G: 1 - (v.A | v.C) }; },
+    note: v => "minterm " + bv(v, ["A", "B", "C"]), init: { A: 1 } },
+  ex3: { in: ["A", "B", "C", "D"], out: ["w", "x", "y", "z"],
+    f: v => { const n = bv(v, ["A", "B", "C", "D"]); return n > 9 ? { w: null, x: null, y: null, z: null } : setBits({}, ["w", "x", "y", "z"], n + 3); },
+    note: v => { const n = bv(v, ["A", "B", "C", "D"]); return n > 9 ? `${n}: BCD'de kullanılmaz (önemsiz)` : `BCD ${n} → excess-3 ${n + 3}`; }, init: { C: 1, D: 1 } },
+  ha: { in: ["x", "y"], out: ["C", "S"], f: v => ({ C: v.x & v.y, S: v.x ^ v.y }),
+    note: v => `${v.x} + ${v.y} = ${(v.x + v.y).toString(2).padStart(2, "0")}₂`, init: { x: 1, y: 1 } },
+  fa: { in: ["x", "y", "z"], out: ["C", "S"], f: v => { const s = v.x + v.y + v.z; return { C: s >> 1, S: s & 1 }; },
+    note: v => { const s = v.x + v.y + v.z; return `${v.x} + ${v.y} + ${v.z} = ${s} = ${s.toString(2).padStart(2, "0")}₂`; }, init: { x: 1, z: 1 } },
+  ripple: { in: [{ name: "A", bits: A4, dec: 1 }, { name: "B", bits: B4, dec: 1 }, "C0"],
+    out: [{ name: "Elde", bits: ["C4", "C3", "C2", "C1"] }, { name: "S", bits: S4, dec: 1 }],
+    f: v => { const o = {}; let c = v.C0; for (let i = 0; i < 4; i++) { const s = v["A" + i] + v["B" + i] + c; o["S" + i] = s & 1; c = s >> 1; o["C" + (i + 1)] = c; } return o; },
+    note: (v, o) => { const a = bv(v, A4), b = bv(v, B4); return `${a} + ${b}${v.C0 ? " + 1" : ""} = ${a + b + v.C0}` + (o.C4 ? " (4 bite sığmaz, C₄ = 1)" : ""); },
+    init: { A2: 1, A1: 1, B2: 1, B1: 1, B0: 1 } },
+  cla: { in: [{ name: "A", bits: A4, dec: 1 }, { name: "B", bits: B4, dec: 1 }, "C0"],
+    out: [{ name: "P", bits: ["P3", "P2", "P1", "P0"] }, { name: "G", bits: ["G3", "G2", "G1", "G0"] }, { name: "Elde", bits: ["C4", "C3", "C2", "C1"] }, { name: "S", bits: S4, dec: 1 }],
+    f: v => {
+      const o = {}, P = [], G = [];
+      for (let i = 0; i < 4; i++) { P[i] = v["A" + i] ^ v["B" + i]; G[i] = v["A" + i] & v["B" + i]; o["P" + i] = P[i]; o["G" + i] = G[i]; }
+      const C = [v.C0];
+      C[1] = G[0] | (P[0] & C[0]);
+      C[2] = G[1] | (P[1] & G[0]) | (P[1] & P[0] & C[0]);
+      C[3] = G[2] | (P[2] & G[1]) | (P[2] & P[1] & G[0]) | (P[2] & P[1] & P[0] & C[0]);
+      C[4] = G[3] | (P[3] & G[2]) | (P[3] & P[2] & G[1]) | (P[3] & P[2] & P[1] & G[0]) | (P[3] & P[2] & P[1] & P[0] & C[0]);
+      for (let i = 1; i <= 4; i++) o["C" + i] = C[i];
+      for (let i = 0; i < 4; i++) o["S" + i] = P[i] ^ C[i];
+      return o;
+    },
+    note: (v, o) => `${bv(v, A4)} + ${bv(v, B4)}${v.C0 ? " + 1" : ""} = ${bv(o, S4) + 16 * o.C4}`,
+    init: { A2: 1, A1: 1, B2: 1, B1: 1, B0: 1 } },
+  addsub: { in: ["M", { name: "A", bits: A4, dec: 1 }, { name: "B", bits: B4, dec: 1 }],
+    out: [{ name: "S", bits: S4, dec: 1 }, "C4", "C3", "V"],
+    f: v => { const o = {}; let c = v.M; for (let i = 0; i < 4; i++) { const s = v["A" + i] + (v["B" + i] ^ v.M) + c; o["S" + i] = s & 1; c = s >> 1; if (i === 2) o.C3 = c; } o.C4 = c; o.V = o.C4 ^ o.C3; return o; },
+    note: (v, o) => { const a = bv(v, A4), b = bv(v, B4), s = bv(o, S4), op = v.M ? "−" : "+";
+      return `İşaretsiz: ${a} ${op} ${b}, S = ${s}, C₄ = ${o.C4}. İşaretli: ${sgn4(a)} ${op} ${sgn4(b)}, S = ${sgn4(s)}${o.V ? " (taşma)" : ""}`; },
+    init: { M: 1, A2: 1, A0: 1, B1: 1, B0: 1 } },
+  bcd: { in: [{ name: "A", bits: A4, dec: 1 }, { name: "B", bits: B4, dec: 1 }],
+    out: ["K", { name: "Z", bits: ["Z8", "Z4", "Z2", "Z1"], dec: 1 }, "C", { name: "S", bits: S4, dec: 1 }],
+    f: v => { const t = bv(v, A4) + bv(v, B4), o = { K: t >> 4 }; setBits(o, ["Z8", "Z4", "Z2", "Z1"], t & 15);
+      o.C = o.K | (o.Z8 & o.Z4) | (o.Z8 & o.Z2); setBits(o, S4, ((t & 15) + (o.C ? 6 : 0)) & 15); return o; },
+    note: (v, o) => { const a = bv(v, A4), b = bv(v, B4);
+      if (a > 9 || b > 9) return "Girişlerden biri BCD değil (9'dan büyük).";
+      return o.C ? `${a} + ${b} = ${a + b}: 0110 eklenir, elde 1, rakam ${bv(o, S4)}` : `${a} + ${b} = ${a + b}: düzeltme gerekmez`; },
+    init: { A2: 1, A1: 1, A0: 1, B3: 1 } },
+  mult: { in: [{ name: "A", bits: ["A1", "A0"], dec: 1 }, { name: "B", bits: ["B1", "B0"], dec: 1 }],
+    out: [{ name: "C", bits: ["C3", "C2", "C1", "C0"], dec: 1 }],
+    f: v => { const p00 = v.A0 & v.B0, p10 = v.A1 & v.B0, p01 = v.A0 & v.B1, p11 = v.A1 & v.B1, k1 = p10 & p01;
+      return { C0: p00, C1: p10 ^ p01, C2: p11 ^ k1, C3: p11 & k1 }; },
+    note: (v, o) => `${bv(v, ["A1", "A0"])} × ${bv(v, ["B1", "B0"])} = ${bv(o, ["C3", "C2", "C1", "C0"])}`,
+    init: { A1: 1, A0: 1, B1: 1, B0: 1 } },
+  comp: { in: [{ name: "A", bits: A4, dec: 1 }, { name: "B", bits: B4, dec: 1 }],
+    out: [{ name: "x", bits: ["x3", "x2", "x1", "x0"] }, "GT", "EQ", "LT"],
+    f: v => { const o = {}; for (let i = 0; i < 4; i++) o["x" + i] = 1 - (v["A" + i] ^ v["B" + i]);
+      const a = bv(v, A4), b = bv(v, B4); o.GT = +(a > b); o.EQ = +(a === b); o.LT = +(a < b); return o; },
+    init: { A3: 1, A1: 1, A0: 1, B3: 1, B0: 1 } },
+  dec: { in: ["E", "A", "B", "C"], out: [{ name: "D", label: "D₀…D₇", bits: D8, idx: 1 }],
+    f: v => { const n = bv(v, ["A", "B", "C"]), o = {}; D8.forEach((d, k) => o[d] = v.E && k === n ? 1 : 0); return o; },
+    note: v => v.E ? `ABC = ${v.A}${v.B}${v.C} → D${subd(bv(v, ["A", "B", "C"]))} = 1` : "E = 0: bütün çıkışlar 0", init: { E: 1, A: 1, C: 1 } },
+  decf: { in: ["A", "B", "C"], out: [{ name: "D", label: "D₀…D₇", bits: D8, idx: 1 }, "F1", "F2"],
+    f: v => { const n = bv(v, ["A", "B", "C"]), o = {}; D8.forEach((d, k) => o[d] = k === n ? 1 : 0);
+      o.F1 = o.D0 | o.D3 | o.D5; o.F2 = o.D1 | o.D2 | o.D6; return o; },
+    note: v => "minterm " + bv(v, ["A", "B", "C"]), init: { B: 1, C: 1 } },
+  enc: { in: ["D3", "D2", "D1", "D0"], out: ["x", "y", "V"],
+    f: v => v.D3 ? { x: 1, y: 1, V: 1 } : v.D2 ? { x: 1, y: 0, V: 1 } : v.D1 ? { x: 0, y: 1, V: 1 } : v.D0 ? { x: 0, y: 0, V: 1 } : { x: null, y: null, V: 0 },
+    note: v => { const k = [3, 2, 1, 0].find(i => v["D" + i]); return k == null ? "Hiç giriş yok: V = 0" : `En yüksek öncelikli 1: D${subd(k)}`; },
+    init: { D2: 1, D1: 1 } },
+  mux: { in: [{ name: "S", label: "S₁S₀", bits: ["S1", "S0"] }, { name: "I", label: "I₀…I₃", bits: ["I0", "I1", "I2", "I3"], idx: 1 }], out: ["Y"],
+    f: v => ({ Y: v["I" + bv(v, ["S1", "S0"])] }), note: v => `Seçilen giriş: I${subd(bv(v, ["S1", "S0"]))}`, init: { S1: 1, I2: 1 } },
+  muxf: { in: ["A", "B", "C"], out: [{ name: "I", label: "I₀…I₃", bits: ["I0", "I1", "I2", "I3"], idx: 1 }, "F"],
+    f: v => { const I = [1 - v.C, v.C, 1, 0]; return { I0: I[0], I1: I[1], I2: I[2], I3: I[3], F: I[2 * v.A + v.B] }; },
+    note: v => { const k = 2 * v.A + v.B, m = 4 * v.A + 2 * v.B + v.C;
+      return `AB = ${v.A}${v.B}: I${subd(k)} seçilir. Minterm ${m} ${[0, 3, 4, 5].includes(m) ? "fonksiyonda var" : "fonksiyonda yok"}.`; } }
+};
+
+const grp = g => typeof g === "string" ? { name: g, bits: [g] } : g;
+const simListeners = {};
+const simState = {};
+
+function setupSim(host) {
+  const id = host.dataset.sim, def = SIMS[id];
+  if (!def) return;
+  const ins = def.in.map(grp), outs = def.out.map(grp);
+  const v = {};
+  ins.forEach(g => g.bits.forEach(b => v[b] = (def.init && def.init[b]) || 0));
+  simState[id] = v;
+  keepTouch(host);
+  host.addEventListener("keydown", e => { if (e.target.closest("button") && (e.key === " " || e.key === "Enter")) e.stopPropagation(); });
+  host.append(el("div", "sim-t", "Deneyin"));
+  const grid = el("div", "sim-grid");
+  host.append(grid);
+  const outCells = {}, decs = [];
+  function row(g, isIn) {
+    grid.append(el("span", "sim-l" + (isIn ? "" : " out"), g.label || lbl(g.name)));
+    const bits = el("span", "sim-bits");
+    g.bits.forEach(b => {
+      if (isIn) {
+        const bt = el("button", "bit");
+        bt.type = "button";
+        bt.title = lbl(b);
+        bt.addEventListener("click", () => { v[b] ^= 1; update(); });
+        bits.append(bt);
+        outCells[b] = bt;
+      } else {
+        const c = el("span", "bit o");
+        c.title = lbl(b);
+        bits.append(c);
+        outCells[b] = c;
+      }
+    });
+    grid.append(bits);
+    const d = el("span", "sim-d");
+    grid.append(d);
+    if (g.dec) decs.push([g, d, isIn]);
+  }
+  ins.forEach(g => row(g, true));
+  grid.append(el("span", "sim-sep"));
+  outs.forEach(g => row(g, false));
+  const note = el("p", "sim-n");
+  host.append(note);
+  function update() {
+    const o = def.f(v);
+    ins.forEach(g => g.bits.forEach(b => {
+      outCells[b].textContent = v[b];
+      outCells[b].setAttribute("aria-pressed", v[b] ? "true" : "false");
+      outCells[b].setAttribute("aria-label", lbl(b) + " = " + v[b]);
+    }));
+    outs.forEach(g => g.bits.forEach(b => {
+      const x = o[b];
+      outCells[b].textContent = x == null ? "X" : x;
+      outCells[b].classList.toggle("one", x === 1);
+      outCells[b].classList.toggle("dc", x == null);
+    }));
+    decs.forEach(([g, d, isIn]) => {
+      const src = isIn ? v : o;
+      d.textContent = g.bits.some(b => src[b] == null) ? "" : "= " + bv(src, g.bits);
+    });
+    note.textContent = def.note ? def.note(v, o) : "";
+    (simListeners[id] || []).forEach(f => f(v));
+  }
+  update();
+}
+
+// Doğruluk tablosu, aynı tanımdan üretilir; denemedeki satır vurgulanır
+function setupTable(t) {
+  const id = t.dataset.sim, def = SIMS[id];
+  if (!def) return;
+  const fix = {};
+  (t.dataset.fix || "").split(",").filter(Boolean).forEach(p => { const [k, val] = p.split("="); fix[k.trim()] = +val; });
+  const inBits = def.in.map(grp).flatMap(g => g.bits).filter(b => !(b in fix));
+  const outBits = def.out.map(grp).flatMap(g => g.bits);
+  const hr = el("tr");
+  inBits.forEach(b => hr.append(el("th", null, lbl(b))));
+  outBits.forEach(b => hr.append(el("th", "o", lbl(b))));
+  t.append(hr);
+  const rows = [];
+  for (let r = 0; r < (1 << inBits.length); r++) {
+    const v = Object.assign({}, fix);
+    inBits.forEach((b, i) => v[b] = (r >> (inBits.length - 1 - i)) & 1);
+    const o = def.f(v);
+    const tr = el("tr");
+    inBits.forEach(b => tr.append(el("td", null, v[b])));
+    outBits.forEach(b => { const x = o[b]; tr.append(el("td", "o" + (x === 1 ? " one" : "") + (x == null ? " x" : ""), x == null ? "X" : x)); });
+    t.append(tr);
+    rows.push([v, tr]);
+  }
+  (simListeners[id] = simListeners[id] || []).push(sv_ => {
+    rows.forEach(([v, tr]) => tr.classList.toggle("now", inBits.every(b => v[b] === sv_[b]) && Object.keys(fix).every(k => sv_[k] === fix[k])));
+  });
+}
+
+/* ===================== START ===================== */
+document.querySelectorAll(".reveal .slides > section").forEach(sec => {
+  const inner = el("div", "slide-inner");
+  while (sec.firstChild) inner.appendChild(sec.firstChild);
+  sec.appendChild(inner);
+});
+// konu slaytları: soru satırını listenin üstüne al (numaralar 1'den başlasın)
+document.querySelectorAll("ol.adim").forEach(ol => {
+  const wrap = el("div", "adimlar");
+  ol.replaceWith(wrap);
+  const q = ol.querySelector("li.soru");
+  if (q) { const p = el("p", "soru"); p.innerHTML = q.innerHTML; q.remove(); wrap.append(p); }
+  wrap.append(ol);
+  keepTouch(wrap);
+});
+if (window.renderMathInElement) {
+  renderMathInElement(document.querySelector(".reveal .slides"), {
+    delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
+    throwOnError: false
+  });
+}
+document.querySelectorAll("svg.devre[data-devre]").forEach(s => drawCircuit(s));
+document.querySelectorAll("div[data-ifade]:not(.haritalar)").forEach(setupView);
+document.querySelectorAll(".haritalar").forEach(setupMaps);
+document.querySelectorAll(".mx-tasarim").forEach(setupMuxDesign);
+document.querySelectorAll(".adimli").forEach(h => ({ kodcozucu: setupDecoderDrill, oncelikli: setupPriorityDrill, cokla: setupMuxDrill })[h.dataset.tur](h));
+document.querySelectorAll("table.dt[data-sim]").forEach(setupTable);
+document.querySelectorAll(".sim").forEach(setupSim);
+document.querySelectorAll(".konu .gorsel").forEach(keepTouch);
+document.querySelectorAll(".qm").forEach(setupQM);                 // listens for random problems
+document.querySelectorAll(".kmap-random").forEach(setupRandom);
+document.querySelectorAll(".qm-random").forEach(setupQMPractice);
+document.querySelectorAll(".kmap").forEach(h => setupKmap(h));
+
+Reveal.initialize({
+  hash: true,
+  slideNumber: "c/t",
+  transition: "fade",
+  transitionSpeed: "fast",
+  width: "100%",
+  height: "100%",
+  margin: 0,
+  minScale: 1,
+  maxScale: 1,
+  center: false,
+  // reveal.js switches narrow screens (<435px) to its scroll view, which breaks the exercise layout
+  scrollActivationWidth: null
+});
+</script>
+</body>
+</html>
